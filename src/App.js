@@ -159,6 +159,13 @@ const App = () => {
     try {
       setLoading(true);
       
+      // Verify user is authenticated
+      if (!supabase.user || !supabase.user.id) {
+        console.log('No authenticated user found');
+        setLoading(false);
+        return;
+      }
+      
       // Load users
       const usersData = await supabase.select('profiles', 'select=*');
       setUsers(usersData);
