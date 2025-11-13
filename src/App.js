@@ -336,6 +336,7 @@ const App = () => {
                 placeholder="Username"
                 value={authForm.username}
                 onChange={(e) => setAuthForm({ ...authForm, username: e.target.value })}
+                onKeyDown={(e) => e.stopPropagation()}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-gray-400"
               />
             )}
@@ -345,6 +346,7 @@ const App = () => {
               placeholder="Email"
               value={authForm.email}
               onChange={(e) => setAuthForm({ ...authForm, email: e.target.value })}
+              onKeyDown={(e) => e.stopPropagation()}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-gray-400"
             />
             
@@ -353,6 +355,7 @@ const App = () => {
               placeholder="Password"
               value={authForm.password}
               onChange={(e) => setAuthForm({ ...authForm, password: e.target.value })}
+              onKeyDown={(e) => e.stopPropagation()}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-gray-400"
             />
             
@@ -545,6 +548,7 @@ const App = () => {
             placeholder="Search username..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyDown={(e) => e.stopPropagation()}
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-gray-400"
           />
         </div>
@@ -617,6 +621,7 @@ const App = () => {
           placeholder="What's happening?..."
           value={newMoment.caption}
           onChange={(e) => setNewMoment({ ...newMoment, caption: e.target.value })}
+          onKeyDown={(e) => e.stopPropagation()}
           className="w-full p-4 border border-gray-300 rounded-lg focus:outline-none focus:border-gray-400 resize-none"
           rows="4"
         />
