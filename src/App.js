@@ -11,10 +11,14 @@ class SupabaseClient {
     this.url = url;
     this.key = key;
     this.token = localStorage.getItem('supabase_token');
-    this.user = JSON.parse(localStorage.getItem('supabase_user') || 'null');
+    const userStr = localStorage.getItem('supabase_user');
+    this.user = userStr ? JSON.parse(userStr) : null;
   }
 
   async request(endpoint, options = {}) {
+    // Always get fresh token from localStorage
+    this.token = localStorage.getItem('supabase_token');
+    
     const headers = {
       'Content-Type': 'application/json',
       'apikey': this.key,
@@ -106,20 +110,22 @@ class SupabaseClient {
 
   // Storage methods
   async uploadFile(bucket, path, file) {
-    const formData = new FormData();
-    formData.append('file', file);
-
+    // Always get fresh token from localStorage
+    this.token = localStorage.getItem('supabase_token');
+    
     const response = await fetch(`${this.url}/storage/v1/object/${bucket}/${path}`, {
       method: 'POST',
       headers: {
-        'apikey': this.key,
-        'Authorization': `Bearer ${this.token}`
+        'Authorization': `Bearer ${this.token}`,
+        'apikey': this.key
       },
       body: file
     });
 
     if (!response.ok) {
-      throw new Error('Upload failed');
+      const error = await response.text();
+      console.error('Upload error:', error);
+      throw new Error('Upload failed: ' + error);
     }
 
     return response.json();
