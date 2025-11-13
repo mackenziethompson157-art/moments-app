@@ -1,4 +1,4 @@
-iimport React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Heart, MessageCircle, Send, Search, Home, PlusSquare, User, ArrowLeft, ChevronLeft, ChevronRight, Upload, LogOut, Camera } from 'lucide-react';
 
 // Supabase client setup
