@@ -626,8 +626,28 @@ const App = () => {
 
   // Profile View
   const ProfileView = () => {
-    const currentUserProfile = users.find(u => u.id === supabase.user.id);
-    const yourMoments = moments.filter(m => m.user_id === supabase.user.id);
+    const currentUserProfile = users.find(u => u.id === supabase.user?.id);
+    const yourMoments = moments.filter(m => m.user_id === supabase.user?.id);
+    
+    // Also load your moments directly if not in the moments array
+    useEffect(() => {
+      const loadYourMoments = async () => {
+        if (supabase.user?.id) {
+          try {
+            const userMoments = await supabase.select('moments', `user_id=eq.${supabase.user.id}&order=created_at.desc`);
+            // Merge with existing moments, avoiding duplicates
+            setMoments(prev => {
+              const existingIds = prev.map(m => m.id);
+              const newMoments = userMoments.filter(m => !existingIds.includes(m.id));
+              return [...prev, ...newMoments];
+            });
+          } catch (err) {
+            console.error('Error loading your moments:', err);
+          }
+        }
+      };
+      loadYourMoments();
+    }, []);
     
     return (
       <div className="pb-20">
@@ -637,8 +657,8 @@ const App = () => {
         
         <div className="p-6">
           <div className="mb-6">
-            <p className="text-xl font-medium">{currentUserProfile?.username}</p>
-            <p className="text-sm text-gray-600">{currentUserProfile?.email}</p>
+            <p className="text-xl font-medium">{currentUserProfile?.username || 'Loading...'}</p>
+            <p className="text-sm text-gray-600">{currentUserProfile?.email || supabase.user?.email}</p>
           </div>
           
           <div className="flex gap-8 mb-6 text-center">
