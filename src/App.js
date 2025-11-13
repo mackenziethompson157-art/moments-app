@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+iimport React, { useState, useEffect, useCallback } from 'react';
 import { Heart, MessageCircle, Send, Search, Home, PlusSquare, User, ArrowLeft, ChevronLeft, ChevronRight, Upload, LogOut, Camera } from 'lucide-react';
 
 // Supabase client setup
@@ -154,6 +154,15 @@ const App = () => {
   // Auth state
   const [authMode, setAuthMode] = useState('signin');
   const [authForm, setAuthForm] = useState({ email: '', password: '', username: '' });
+
+  // Memoized handlers to prevent re-renders
+  const handleSearchChange = useCallback((e) => {
+    setSearchQuery(e.target.value);
+  }, []);
+
+  const handleCaptionChange = useCallback((e) => {
+    setNewMoment(prev => ({ ...prev, caption: e.target.value }));
+  }, []);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -532,7 +541,7 @@ const App = () => {
   };
 
   // Search View
-  const SearchView = () => {
+  const SearchView = useCallback(() => {
     const filteredUsers = users.filter(u => 
       u.id !== supabase.user.id &&
       (u.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -547,8 +556,7 @@ const App = () => {
             type="text"
             placeholder="Search username..."
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            onKeyDown={(e) => e.stopPropagation()}
+            onChange={handleSearchChange}
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-gray-400"
           />
         </div>
@@ -578,10 +586,10 @@ const App = () => {
         </div>
       </div>
     );
-  };
+  }, [searchQuery, users, following, handleSearchChange]);
 
   // Post View
-  const PostView = () => (
+  const PostView = useCallback(() => (
     <div className="pb-20">
       <div className="sticky top-0 bg-white border-b border-gray-200 p-4 z-10 flex items-center justify-between">
         <button onClick={() => setCurrentView('feed')} className="text-gray-600">
@@ -620,39 +628,40 @@ const App = () => {
         <textarea
           placeholder="What's happening?..."
           value={newMoment.caption}
-          onChange={(e) => setNewMoment({ ...newMoment, caption: e.target.value })}
-          onKeyDown={(e) => e.stopPropagation()}
+          onChange={handleCaptionChange}
           className="w-full p-4 border border-gray-300 rounded-lg focus:outline-none focus:border-gray-400 resize-none"
           rows="4"
         />
       </div>
     </div>
-  );
+  ), [newMoment, loading, handleCaptionChange, handlePostMoment, handleImageSelect]);
 
   // Profile View
   const ProfileView = () => {
     const currentUserProfile = users.find(u => u.id === supabase.user?.id);
     const yourMoments = moments.filter(m => m.user_id === supabase.user?.id);
+    const [loadedProfile, setLoadedProfile] = useState(false);
     
-    // Also load your moments directly if not in the moments array
+    // Load your moments only once
     useEffect(() => {
+      if (loadedProfile || !supabase.user?.id) return;
+      
       const loadYourMoments = async () => {
-        if (supabase.user?.id) {
-          try {
-            const userMoments = await supabase.select('moments', `user_id=eq.${supabase.user.id}&order=created_at.desc`);
-            // Merge with existing moments, avoiding duplicates
-            setMoments(prev => {
-              const existingIds = prev.map(m => m.id);
-              const newMoments = userMoments.filter(m => !existingIds.includes(m.id));
-              return [...prev, ...newMoments];
-            });
-          } catch (err) {
-            console.error('Error loading your moments:', err);
-          }
+        try {
+          const userMoments = await supabase.select('moments', `user_id=eq.${supabase.user.id}&order=created_at.desc`);
+          // Merge with existing moments, avoiding duplicates
+          setMoments(prev => {
+            const existingIds = prev.map(m => m.id);
+            const newMoments = userMoments.filter(m => !existingIds.includes(m.id));
+            return [...prev, ...newMoments];
+          });
+          setLoadedProfile(true);
+        } catch (err) {
+          console.error('Error loading your moments:', err);
         }
       };
       loadYourMoments();
-    }, []);
+    }, [loadedProfile]);
     
     return (
       <div className="pb-20">
