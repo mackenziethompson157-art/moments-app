@@ -1,50 +1,35 @@
-import React, { useState, useEffect } from "react";
-import {
-  Heart,
-  MessageCircle,
-  Send,
-  Search,
-  Home,
-  PlusSquare,
-  User,
-  ArrowLeft,
-  ChevronLeft,
-  ChevronRight,
-  Upload,
-  LogOut,
-  Camera,
-} from "lucide-react";
+import React, { useState, useEffect } from 'react';
+import { Heart, MessageCircle, Send, Search, Home, PlusSquare, User, ArrowLeft, ChevronLeft, ChevronRight, Upload, LogOut, Camera } from 'lucide-react';
 
 // Supabase client setup
-const SUPABASE_URL = "https://emcnnvxvwmkmuudxbtqp.supabase.co";
-const SUPABASE_ANON_KEY =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVtY25udnh2d21rbXV1ZHhidHFwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5ODQ3MDMsImV4cCI6MjA3ODU2MDcwM30.Xgqc7YysiTtQVSqIINaZXqEmANjqn4YWP83sgqTQbZg";
+const SUPABASE_URL = 'https://emcnnvxvwmkmuudxbtqp.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVtY25udnh2d21rbXV1ZHhidHFwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5ODQ3MDMsImV4cCI6MjA3ODU2MDcwM30.Xgqc7YysiTtQVSqIINaZXqEmANjqn4YWP83sgqTQbZg';
 
 // Simple Supabase client
 class SupabaseClient {
   constructor(url, key) {
     this.url = url;
     this.key = key;
-    this.token = localStorage.getItem("supabase_token");
-    this.user = JSON.parse(localStorage.getItem("supabase_user") || "null");
+    this.token = localStorage.getItem('supabase_token');
+    this.user = JSON.parse(localStorage.getItem('supabase_user') || 'null');
   }
 
   async request(endpoint, options = {}) {
     const headers = {
-      "Content-Type": "application/json",
-      apikey: this.key,
-      ...(this.token && { Authorization: `Bearer ${this.token}` }),
-      ...options.headers,
+      'Content-Type': 'application/json',
+      'apikey': this.key,
+      ...(this.token && { 'Authorization': `Bearer ${this.token}` }),
+      ...options.headers
     };
 
     const response = await fetch(`${this.url}${endpoint}`, {
       ...options,
-      headers,
+      headers
     });
 
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.message || "Request failed");
+      throw new Error(error.message || 'Request failed');
     }
 
     return response.json();
@@ -52,92 +37,89 @@ class SupabaseClient {
 
   // Auth methods
   async signUp(email, password, username) {
-    const data = await this.request("/auth/v1/signup", {
-      method: "POST",
-      body: JSON.stringify({ email, password, data: { username } }),
+    const data = await this.request('/auth/v1/signup', {
+      method: 'POST',
+      body: JSON.stringify({ email, password, data: { username } })
     });
-
+    
     if (data.access_token) {
       this.token = data.access_token;
       this.user = data.user;
-      localStorage.setItem("supabase_token", this.token);
-      localStorage.setItem("supabase_user", JSON.stringify(this.user));
+      localStorage.setItem('supabase_token', this.token);
+      localStorage.setItem('supabase_user', JSON.stringify(this.user));
     }
-
+    
     return data;
   }
 
   async signIn(email, password) {
-    const data = await this.request("/auth/v1/token?grant_type=password", {
-      method: "POST",
-      body: JSON.stringify({ email, password }),
+    const data = await this.request('/auth/v1/token?grant_type=password', {
+      method: 'POST',
+      body: JSON.stringify({ email, password })
     });
-
+    
     if (data.access_token) {
       this.token = data.access_token;
       this.user = data.user;
-      localStorage.setItem("supabase_token", this.token);
-      localStorage.setItem("supabase_user", JSON.stringify(this.user));
+      localStorage.setItem('supabase_token', this.token);
+      localStorage.setItem('supabase_user', JSON.stringify(this.user));
     }
-
+    
     return data;
   }
 
   signOut() {
     this.token = null;
     this.user = null;
-    localStorage.removeItem("supabase_token");
-    localStorage.removeItem("supabase_user");
+    localStorage.removeItem('supabase_token');
+    localStorage.removeItem('supabase_user');
   }
 
   // Database methods
-  async select(table, query = "") {
+  async select(table, query = '') {
     return this.request(`/rest/v1/${table}?${query}`, {
-      headers: { Prefer: "return=representation" },
+      headers: { 'Prefer': 'return=representation' }
     });
   }
 
   async insert(table, data) {
     return this.request(`/rest/v1/${table}`, {
-      method: "POST",
+      method: 'POST',
       body: JSON.stringify(data),
-      headers: { Prefer: "return=representation" },
+      headers: { 'Prefer': 'return=representation' }
     });
   }
 
   async update(table, id, data) {
     return this.request(`/rest/v1/${table}?id=eq.${id}`, {
-      method: "PATCH",
+      method: 'PATCH',
       body: JSON.stringify(data),
-      headers: { Prefer: "return=representation" },
+      headers: { 'Prefer': 'return=representation' }
     });
   }
 
   async delete(table, id) {
     return this.request(`/rest/v1/${table}?id=eq.${id}`, {
-      method: "DELETE",
+      method: 'DELETE'
     });
   }
 
   // Storage methods
   async uploadFile(bucket, path, file) {
     const formData = new FormData();
-    formData.append("file", file);
+    formData.append('file', file);
 
-    const response = await fetch(
-      `${this.url}/storage/v1/object/${bucket}/${path}`,
-      {
-        method: "POST",
-        headers: {
-          apikey: this.key,
-          Authorization: `Bearer ${this.token}`,
-        },
-        body: file,
-      }
-    );
+    const response = await fetch(`${this.url}/storage/v1/object/${bucket}/${path}`, {
+      method: 'POST',
+      headers: {
+        'apikey': this.key,
+        'Authorization': `Bearer ${this.token}`
+      },
+      body: file
+    });
 
     if (!response.ok) {
-      throw new Error("Upload failed");
+      throw new Error('Upload failed');
     }
 
     return response.json();
@@ -152,28 +134,20 @@ const supabase = new SupabaseClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const App = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(!!supabase.user);
-  const [currentView, setCurrentView] = useState("feed");
+  const [currentView, setCurrentView] = useState('feed');
   const [moments, setMoments] = useState([]);
   const [users, setUsers] = useState([]);
   const [following, setFollowing] = useState([]);
   const [selectedUserId, setSelectedUserId] = useState(null);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [newMoment, setNewMoment] = useState({
-    caption: "",
-    image: null,
-    preview: null,
-  });
+  const [searchQuery, setSearchQuery] = useState('');
+  const [newMoment, setNewMoment] = useState({ caption: '', image: null, preview: null });
   const [currentMomentIndex, setCurrentMomentIndex] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
   // Auth state
-  const [authMode, setAuthMode] = useState("signin");
-  const [authForm, setAuthForm] = useState({
-    email: "",
-    password: "",
-    username: "",
-  });
+  const [authMode, setAuthMode] = useState('signin');
+  const [authForm, setAuthForm] = useState({ email: '', password: '', username: '' });
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -184,32 +158,26 @@ const App = () => {
   const loadData = async () => {
     try {
       setLoading(true);
-
+      
       // Load users
-      const usersData = await supabase.select("profiles", "select=*");
+      const usersData = await supabase.select('profiles', 'select=*');
       setUsers(usersData);
 
       // Load following relationships
-      const followingData = await supabase.select(
-        "follows",
-        `follower_id=eq.${supabase.user.id}`
-      );
+      const followingData = await supabase.select('follows', `follower_id=eq.${supabase.user.id}`);
       setFollowing(followingData);
 
       // Load moments from followed users
-      const followedIds = followingData.map((f) => f.following_id).join(",");
+      const followedIds = followingData.map(f => f.following_id).join(',');
       if (followedIds) {
-        const momentsData = await supabase.select(
-          "moments",
-          `user_id=in.(${followedIds})&order=created_at.desc`
-        );
+        const momentsData = await supabase.select('moments', `user_id=in.(${followedIds})&order=created_at.desc`);
         setMoments(momentsData);
       }
-
+      
       setError(null);
     } catch (err) {
       setError(err.message);
-      console.error("Error loading data:", err);
+      console.error('Error loading data:', err);
     } finally {
       setLoading(false);
     }
@@ -220,24 +188,26 @@ const App = () => {
       setLoading(true);
       setError(null);
 
-      if (authMode === "signup") {
-        await supabase.signUp(
-          authForm.email,
-          authForm.password,
-          authForm.username
-        );
-        // Create profile
-        await supabase.insert("profiles", {
-          id: supabase.user.id,
-          username: authForm.username,
-          email: authForm.email,
-        });
+      if (authMode === 'signup') {
+        const authData = await supabase.signUp(authForm.email, authForm.password, authForm.username);
+        
+        // Wait a moment for auth to complete
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // Create profile using the returned user ID
+        if (authData.user) {
+          await supabase.insert('profiles', {
+            id: authData.user.id,
+            username: authForm.username,
+            email: authForm.email
+          });
+        }
       } else {
         await supabase.signIn(authForm.email, authForm.password);
       }
 
       setIsAuthenticated(true);
-      setAuthForm({ email: "", password: "", username: "" });
+      setAuthForm({ email: '', password: '', username: '' });
     } catch (err) {
       setError(err.message);
     } finally {
@@ -248,7 +218,7 @@ const App = () => {
   const handleSignOut = () => {
     supabase.signOut();
     setIsAuthenticated(false);
-    setCurrentView("feed");
+    setCurrentView('feed');
   };
 
   const handleImageSelect = (e) => {
@@ -257,7 +227,7 @@ const App = () => {
       setNewMoment({
         ...newMoment,
         image: file,
-        preview: URL.createObjectURL(file),
+        preview: URL.createObjectURL(file)
       });
     }
   };
@@ -267,24 +237,24 @@ const App = () => {
 
     try {
       setLoading(true);
-
+      
       // Upload image
       const fileName = `${Date.now()}_${newMoment.image.name}`;
-      await supabase.uploadFile("moments", fileName, newMoment.image);
-      const imageUrl = supabase.getPublicUrl("moments", fileName);
+      await supabase.uploadFile('moments', fileName, newMoment.image);
+      const imageUrl = supabase.getPublicUrl('moments', fileName);
 
       // Create moment
-      await supabase.insert("moments", {
+      await supabase.insert('moments', {
         user_id: supabase.user.id,
         image_url: imageUrl,
-        caption: newMoment.caption,
+        caption: newMoment.caption
       });
 
       // Reload moments
       await loadData();
-
-      setNewMoment({ caption: "", image: null, preview: null });
-      setCurrentView("feed");
+      
+      setNewMoment({ caption: '', image: null, preview: null });
+      setCurrentView('feed');
     } catch (err) {
       setError(err.message);
     } finally {
@@ -294,18 +264,18 @@ const App = () => {
 
   const toggleFollow = async (userId) => {
     try {
-      const isFollowing = following.some((f) => f.following_id === userId);
-
+      const isFollowing = following.some(f => f.following_id === userId);
+      
       if (isFollowing) {
-        const followRecord = following.find((f) => f.following_id === userId);
-        await supabase.delete("follows", followRecord.id);
+        const followRecord = following.find(f => f.following_id === userId);
+        await supabase.delete('follows', followRecord.id);
       } else {
-        await supabase.insert("follows", {
+        await supabase.insert('follows', {
           follower_id: supabase.user.id,
-          following_id: userId,
+          following_id: userId
         });
       }
-
+      
       await loadData();
     } catch (err) {
       setError(err.message);
@@ -315,20 +285,17 @@ const App = () => {
   const toggleLike = async (momentId) => {
     try {
       // Check if already liked
-      const likes = await supabase.select(
-        "likes",
-        `user_id=eq.${supabase.user.id}&moment_id=eq.${momentId}`
-      );
-
+      const likes = await supabase.select('likes', `user_id=eq.${supabase.user.id}&moment_id=eq.${momentId}`);
+      
       if (likes.length > 0) {
-        await supabase.delete("likes", likes[0].id);
+        await supabase.delete('likes', likes[0].id);
       } else {
-        await supabase.insert("likes", {
+        await supabase.insert('likes', {
           user_id: supabase.user.id,
-          moment_id: momentId,
+          moment_id: momentId
         });
       }
-
+      
       await loadData();
     } catch (err) {
       setError(err.message);
@@ -341,10 +308,8 @@ const App = () => {
       <div className="max-w-md mx-auto bg-white min-h-screen flex items-center justify-center p-4">
         <div className="w-full max-w-sm">
           <h1 className="text-4xl font-light mb-2 text-center">Moments</h1>
-          <p className="text-sm text-gray-500 mb-8 text-center">
-            Share life with close friends
-          </p>
-
+          <p className="text-sm text-gray-500 mb-8 text-center">Share life with close friends</p>
+          
           {error && (
             <div className="bg-red-50 text-red-600 p-3 rounded-lg mb-4 text-sm">
               {error}
@@ -352,60 +317,46 @@ const App = () => {
           )}
 
           <div className="space-y-4">
-            {authMode === "signup" && (
+            {authMode === 'signup' && (
               <input
                 type="text"
                 placeholder="Username"
                 value={authForm.username}
-                onChange={(e) =>
-                  setAuthForm({ ...authForm, username: e.target.value })
-                }
+                onChange={(e) => setAuthForm({ ...authForm, username: e.target.value })}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-gray-400"
               />
             )}
-
+            
             <input
               type="email"
               placeholder="Email"
               value={authForm.email}
-              onChange={(e) =>
-                setAuthForm({ ...authForm, email: e.target.value })
-              }
+              onChange={(e) => setAuthForm({ ...authForm, email: e.target.value })}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-gray-400"
             />
-
+            
             <input
               type="password"
               placeholder="Password"
               value={authForm.password}
-              onChange={(e) =>
-                setAuthForm({ ...authForm, password: e.target.value })
-              }
+              onChange={(e) => setAuthForm({ ...authForm, password: e.target.value })}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-gray-400"
             />
-
+            
             <button
               onClick={handleAuth}
               disabled={loading}
               className="w-full bg-black text-white py-3 rounded-lg hover:bg-gray-800 disabled:opacity-50"
             >
-              {loading
-                ? "Loading..."
-                : authMode === "signup"
-                ? "Sign Up"
-                : "Sign In"}
+              {loading ? 'Loading...' : authMode === 'signup' ? 'Sign Up' : 'Sign In'}
             </button>
           </div>
 
           <button
-            onClick={() =>
-              setAuthMode(authMode === "signup" ? "signin" : "signup")
-            }
+            onClick={() => setAuthMode(authMode === 'signup' ? 'signin' : 'signup')}
             className="w-full mt-4 text-sm text-gray-600 hover:text-black"
           >
-            {authMode === "signup"
-              ? "Already have an account? Sign in"
-              : "Need an account? Sign up"}
+            {authMode === 'signup' ? 'Already have an account? Sign in' : 'Need an account? Sign up'}
           </button>
         </div>
       </div>
@@ -413,48 +364,26 @@ const App = () => {
   }
 
   // Get following users and their latest moments
-  const followingUserIds = following.map((f) => f.following_id);
-  const followingUsers = users.filter((u) => followingUserIds.includes(u.id));
-  const latestMoments = followingUsers
-    .map((user) => {
-      const userMoments = moments.filter((m) => m.user_id === user.id);
-      return userMoments.length > 0 ? { ...userMoments[0], user } : null;
-    })
-    .filter(Boolean);
+  const followingUserIds = following.map(f => f.following_id);
+  const followingUsers = users.filter(u => followingUserIds.includes(u.id));
+  const latestMoments = followingUsers.map(user => {
+    const userMoments = moments.filter(m => m.user_id === user.id);
+    return userMoments.length > 0 ? { ...userMoments[0], user } : null;
+  }).filter(Boolean);
 
   // Navigation Bar
   const NavBar = () => (
     <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 flex justify-around py-3">
-      <button
-        onClick={() => setCurrentView("feed")}
-        className={`p-2 ${
-          currentView === "feed" ? "text-black" : "text-gray-400"
-        }`}
-      >
+      <button onClick={() => setCurrentView('feed')} className={`p-2 ${currentView === 'feed' ? 'text-black' : 'text-gray-400'}`}>
         <Home size={28} />
       </button>
-      <button
-        onClick={() => setCurrentView("search")}
-        className={`p-2 ${
-          currentView === "search" ? "text-black" : "text-gray-400"
-        }`}
-      >
+      <button onClick={() => setCurrentView('search')} className={`p-2 ${currentView === 'search' ? 'text-black' : 'text-gray-400'}`}>
         <Search size={28} />
       </button>
-      <button
-        onClick={() => setCurrentView("post")}
-        className={`p-2 ${
-          currentView === "post" ? "text-black" : "text-gray-400"
-        }`}
-      >
+      <button onClick={() => setCurrentView('post')} className={`p-2 ${currentView === 'post' ? 'text-black' : 'text-gray-400'}`}>
         <PlusSquare size={28} />
       </button>
-      <button
-        onClick={() => setCurrentView("profile")}
-        className={`p-2 ${
-          currentView === "profile" ? "text-black" : "text-gray-400"
-        }`}
-      >
+      <button onClick={() => setCurrentView('profile')} className={`p-2 ${currentView === 'profile' ? 'text-black' : 'text-gray-400'}`}>
         <User size={28} />
       </button>
     </div>
@@ -465,14 +394,11 @@ const App = () => {
     <div className="pb-20">
       <div className="sticky top-0 bg-white border-b border-gray-200 p-4 z-10 flex justify-between items-center">
         <h1 className="text-2xl font-light">Moments</h1>
-        <button
-          onClick={handleSignOut}
-          className="text-gray-600 hover:text-black"
-        >
+        <button onClick={handleSignOut} className="text-gray-600 hover:text-black">
           <LogOut size={20} />
         </button>
       </div>
-
+      
       {loading ? (
         <div className="p-8 text-center text-gray-500">Loading...</div>
       ) : latestMoments.length === 0 ? (
@@ -483,31 +409,23 @@ const App = () => {
       ) : (
         <>
           <div className="grid grid-cols-2 gap-3 p-4">
-            {latestMoments.map((moment) => (
+            {latestMoments.map(moment => (
               <button
                 key={moment.id}
                 onClick={() => {
                   setSelectedUserId(moment.user_id);
-                  setCurrentView("album");
+                  setCurrentView('album');
                   setCurrentMomentIndex(0);
                 }}
                 className="aspect-square bg-gray-50 rounded-2xl overflow-hidden hover:opacity-80 transition-opacity"
               >
                 <div className="h-full flex flex-col">
                   <div className="flex-1 overflow-hidden">
-                    <img
-                      src={moment.image_url}
-                      alt=""
-                      className="w-full h-full object-cover"
-                    />
+                    <img src={moment.image_url} alt="" className="w-full h-full object-cover" />
                   </div>
                   <div className="bg-white p-3 border-t border-gray-100">
-                    <p className="text-sm font-medium truncate">
-                      {moment.user.username}
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      {new Date(moment.created_at).toLocaleDateString()}
-                    </p>
+                    <p className="text-sm font-medium truncate">{moment.user.username}</p>
+                    <p className="text-xs text-gray-500">{new Date(moment.created_at).toLocaleDateString()}</p>
                   </div>
                 </div>
               </button>
@@ -523,17 +441,14 @@ const App = () => {
 
   // Album View
   const AlbumView = () => {
-    const userMoments = moments.filter((m) => m.user_id === selectedUserId);
+    const userMoments = moments.filter(m => m.user_id === selectedUserId);
     const currentMoment = userMoments[currentMomentIndex];
-    const momentUser = users.find((u) => u.id === selectedUserId);
+    const momentUser = users.find(u => u.id === selectedUserId);
 
     return (
       <div className="fixed inset-0 bg-white z-50">
         <div className="sticky top-0 bg-white border-b border-gray-200 p-4 z-10 flex items-center justify-between">
-          <button
-            onClick={() => setCurrentView("feed")}
-            className="text-gray-600"
-          >
+          <button onClick={() => setCurrentView('feed')} className="text-gray-600">
             <ArrowLeft size={24} />
           </button>
           <div className="text-center">
@@ -552,7 +467,7 @@ const App = () => {
               <ChevronLeft size={24} />
             </button>
           )}
-
+          
           {currentMomentIndex < userMoments.length - 1 && (
             <button
               onClick={() => setCurrentMomentIndex(currentMomentIndex + 1)}
@@ -565,30 +480,21 @@ const App = () => {
           <div className="w-full max-w-lg px-4">
             <div className="bg-gray-50 rounded-2xl overflow-hidden">
               <div className="aspect-square">
-                <img
-                  src={currentMoment?.image_url}
-                  alt=""
-                  className="w-full h-full object-cover"
-                />
+                <img src={currentMoment?.image_url} alt="" className="w-full h-full object-cover" />
               </div>
-
+              
               <div className="bg-white p-6">
                 <div className="flex gap-4 mb-4">
-                  <button
-                    onClick={() => toggleLike(currentMoment?.id)}
-                    className="hover:opacity-70"
-                  >
+                  <button onClick={() => toggleLike(currentMoment?.id)} className="hover:opacity-70">
                     <Heart size={24} />
                   </button>
                   <button className="hover:opacity-70">
                     <MessageCircle size={24} />
                   </button>
                 </div>
-
+                
                 <p className="text-base mb-2">{currentMoment?.caption}</p>
-                <p className="text-xs text-gray-500">
-                  {new Date(currentMoment?.created_at).toLocaleString()}
-                </p>
+                <p className="text-xs text-gray-500">{new Date(currentMoment?.created_at).toLocaleString()}</p>
               </div>
             </div>
 
@@ -598,9 +504,7 @@ const App = () => {
                   key={index}
                   onClick={() => setCurrentMomentIndex(index)}
                   className={`h-2 rounded-full transition-all ${
-                    index === currentMomentIndex
-                      ? "w-6 bg-black"
-                      : "w-2 bg-gray-300"
+                    index === currentMomentIndex ? 'w-6 bg-black' : 'w-2 bg-gray-300'
                   }`}
                 />
               ))}
@@ -613,11 +517,10 @@ const App = () => {
 
   // Search View
   const SearchView = () => {
-    const filteredUsers = users.filter(
-      (u) =>
-        u.id !== supabase.user.id &&
-        (u.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          u.email.toLowerCase().includes(searchQuery.toLowerCase()))
+    const filteredUsers = users.filter(u => 
+      u.id !== supabase.user.id &&
+      (u.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
+       u.email.toLowerCase().includes(searchQuery.toLowerCase()))
     );
 
     return (
@@ -632,17 +535,12 @@ const App = () => {
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-gray-400"
           />
         </div>
-
+        
         <div className="divide-y divide-gray-100">
-          {filteredUsers.map((user) => {
-            const isFollowing = following.some(
-              (f) => f.following_id === user.id
-            );
+          {filteredUsers.map(user => {
+            const isFollowing = following.some(f => f.following_id === user.id);
             return (
-              <div
-                key={user.id}
-                className="flex items-center justify-between p-4"
-              >
+              <div key={user.id} className="flex items-center justify-between p-4">
                 <div>
                   <p className="font-medium text-sm">{user.username}</p>
                   <p className="text-xs text-gray-500">{user.email}</p>
@@ -650,12 +548,12 @@ const App = () => {
                 <button
                   onClick={() => toggleFollow(user.id)}
                   className={`px-6 py-1.5 rounded-lg text-sm font-medium ${
-                    isFollowing
-                      ? "bg-gray-200 text-black"
-                      : "bg-black text-white"
+                    isFollowing 
+                      ? 'bg-gray-200 text-black' 
+                      : 'bg-black text-white'
                   }`}
                 >
-                  {isFollowing ? "Following" : "Follow"}
+                  {isFollowing ? 'Following' : 'Follow'}
                 </button>
               </div>
             );
@@ -669,10 +567,7 @@ const App = () => {
   const PostView = () => (
     <div className="pb-20">
       <div className="sticky top-0 bg-white border-b border-gray-200 p-4 z-10 flex items-center justify-between">
-        <button
-          onClick={() => setCurrentView("feed")}
-          className="text-gray-600"
-        >
+        <button onClick={() => setCurrentView('feed')} className="text-gray-600">
           <ArrowLeft size={24} />
         </button>
         <h1 className="text-xl font-light">Share a Moment</h1>
@@ -680,23 +575,17 @@ const App = () => {
           onClick={handlePostMoment}
           disabled={!newMoment.caption.trim() || !newMoment.image || loading}
           className={`text-sm font-medium ${
-            newMoment.caption.trim() && newMoment.image && !loading
-              ? "text-black"
-              : "text-gray-300"
+            newMoment.caption.trim() && newMoment.image && !loading ? 'text-black' : 'text-gray-300'
           }`}
         >
-          {loading ? "Posting..." : "Post"}
+          {loading ? 'Posting...' : 'Post'}
         </button>
       </div>
-
+      
       <div className="p-4">
         <label className="block bg-gray-50 rounded-lg p-8 mb-4 cursor-pointer hover:bg-gray-100">
           {newMoment.preview ? (
-            <img
-              src={newMoment.preview}
-              alt="Preview"
-              className="w-full h-64 object-cover rounded-lg"
-            />
+            <img src={newMoment.preview} alt="Preview" className="w-full h-64 object-cover rounded-lg" />
           ) : (
             <div className="flex flex-col items-center justify-center h-64">
               <Camera size={48} className="text-gray-400 mb-2" />
@@ -710,13 +599,11 @@ const App = () => {
             className="hidden"
           />
         </label>
-
+        
         <textarea
           placeholder="What's happening?..."
           value={newMoment.caption}
-          onChange={(e) =>
-            setNewMoment({ ...newMoment, caption: e.target.value })
-          }
+          onChange={(e) => setNewMoment({ ...newMoment, caption: e.target.value })}
           className="w-full p-4 border border-gray-300 rounded-lg focus:outline-none focus:border-gray-400 resize-none"
           rows="4"
         />
@@ -726,23 +613,21 @@ const App = () => {
 
   // Profile View
   const ProfileView = () => {
-    const currentUserProfile = users.find((u) => u.id === supabase.user.id);
-    const yourMoments = moments.filter((m) => m.user_id === supabase.user.id);
-
+    const currentUserProfile = users.find(u => u.id === supabase.user.id);
+    const yourMoments = moments.filter(m => m.user_id === supabase.user.id);
+    
     return (
       <div className="pb-20">
         <div className="sticky top-0 bg-white border-b border-gray-200 p-4 z-10">
           <h1 className="text-2xl font-light">Profile</h1>
         </div>
-
+        
         <div className="p-6">
           <div className="mb-6">
-            <p className="text-xl font-medium">
-              {currentUserProfile?.username}
-            </p>
+            <p className="text-xl font-medium">{currentUserProfile?.username}</p>
             <p className="text-sm text-gray-600">{currentUserProfile?.email}</p>
           </div>
-
+          
           <div className="flex gap-8 mb-6 text-center">
             <div>
               <p className="text-2xl font-light">{yourMoments.length}</p>
@@ -753,25 +638,16 @@ const App = () => {
               <p className="text-xs text-gray-600">Following</p>
             </div>
           </div>
-
+          
           <div className="border-t border-gray-200 pt-4">
             <p className="text-sm text-gray-600 mb-4">Your Moments</p>
             {yourMoments.length === 0 ? (
-              <p className="text-center text-gray-400 py-8 text-sm">
-                No moments shared yet
-              </p>
+              <p className="text-center text-gray-400 py-8 text-sm">No moments shared yet</p>
             ) : (
               <div className="grid grid-cols-3 gap-2">
-                {yourMoments.map((moment) => (
-                  <div
-                    key={moment.id}
-                    className="aspect-square bg-gray-50 rounded overflow-hidden"
-                  >
-                    <img
-                      src={moment.image_url}
-                      alt=""
-                      className="w-full h-full object-cover"
-                    />
+                {yourMoments.map(moment => (
+                  <div key={moment.id} className="aspect-square bg-gray-50 rounded overflow-hidden">
+                    <img src={moment.image_url} alt="" className="w-full h-full object-cover" />
                   </div>
                 ))}
               </div>
@@ -789,12 +665,12 @@ const App = () => {
           {error}
         </div>
       )}
-
-      {currentView === "feed" && <FeedView />}
-      {currentView === "album" && <AlbumView />}
-      {currentView === "search" && <SearchView />}
-      {currentView === "post" && <PostView />}
-      {currentView === "profile" && <ProfileView />}
+      
+      {currentView === 'feed' && <FeedView />}
+      {currentView === 'album' && <AlbumView />}
+      {currentView === 'search' && <SearchView />}
+      {currentView === 'post' && <PostView />}
+      {currentView === 'profile' && <ProfileView />}
       <NavBar />
     </div>
   );
