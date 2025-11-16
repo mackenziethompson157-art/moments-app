@@ -151,6 +151,10 @@ const App = () => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [likes, setLikes] = useState([]);
+  const [showComments, setShowComments] = useState(false);
+  const [comments, setComments] = useState([]);
+  const [newComment, setNewComment] = useState('');
 
   // Auth state
   const [authMode, setAuthMode] = useState('signin');
@@ -189,6 +193,10 @@ const App = () => {
         const momentsData = await supabase.select('moments', `user_id=in.(${allUserIds})&order=created_at.desc`);
         setMoments(momentsData);
       }
+      
+      // Load all likes
+      const likesData = await supabase.select('likes', 'select=*');
+      setLikes(likesData);
       
       setError(null);
     } catch (err) {
@@ -305,19 +313,49 @@ const App = () => {
 
   const toggleLike = async (momentId) => {
     try {
-      // Check if already liked
-      const likes = await supabase.select('likes', `user_id=eq.${supabase.user.id}&moment_id=eq.${momentId}`);
+      const userLike = likes.find(l => l.user_id === supabase.user.id && l.moment_id === momentId);
       
-      if (likes.length > 0) {
-        await supabase.delete('likes', likes[0].id);
+      if (userLike) {
+        await supabase.delete('likes', userLike.id);
+        setLikes(likes.filter(l => l.id !== userLike.id));
       } else {
-        await supabase.insert('likes', {
+        const newLike = await supabase.insert('likes', {
           user_id: supabase.user.id,
           moment_id: momentId
         });
+        if (newLike && newLike.length > 0) {
+          setLikes([...likes, newLike[0]]);
+        }
+      }
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const loadComments = async (momentId) => {
+    try {
+      const commentsData = await supabase.select('comments', `moment_id=eq.${momentId}&order=created_at.asc`);
+      setComments(commentsData);
+    } catch (err) {
+      console.error('Error loading comments:', err);
+    }
+  };
+
+  const addComment = async (momentId) => {
+    if (!newComment.trim()) return;
+    
+    try {
+      const comment = await supabase.insert('comments', {
+        moment_id: momentId,
+        user_id: supabase.user.id,
+        text: newComment
+      });
+      
+      if (comment && comment.length > 0) {
+        setComments([...comments, comment[0]]);
       }
       
-      await loadData();
+      setNewComment('');
     } catch (err) {
       setError(err.message);
     }
@@ -494,10 +532,28 @@ const App = () => {
       }
     }
 
+    // Check if current user liked this moment
+    const isLiked = currentMoment && likes.some(l => 
+      l.user_id === supabase.user.id && l.moment_id === currentMoment.id
+    );
+    
+    // Count likes for this moment
+    const likeCount = currentMoment ? likes.filter(l => l.moment_id === currentMoment.id).length : 0;
+
+    // Load comments when view opens
+    React.useEffect(() => {
+      if (currentMoment) {
+        loadComments(currentMoment.id);
+      }
+    }, [currentMoment?.id]);
+
     return (
       <div className="fixed inset-0 bg-white z-50 overflow-y-auto">
         <div className="sticky top-0 bg-white border-b border-gray-200 p-4 z-10 flex items-center justify-between">
-          <button onClick={() => setCurrentView('feed')} className="text-gray-600">
+          <button onClick={() => {
+            setCurrentView('feed');
+            setShowComments(false);
+          }} className="text-gray-600">
             <ArrowLeft size={24} />
           </button>
           <div className="text-center">
@@ -520,26 +576,84 @@ const App = () => {
           {/* Caption and actions */}
           <div className="p-6 bg-white">
             <div className="flex gap-4 mb-4">
-              <button onClick={() => toggleLike(currentMoment?.id)} className="hover:opacity-70">
-                <Heart size={24} />
+              <button 
+                onClick={() => toggleLike(currentMoment?.id)} 
+                className="hover:opacity-70 flex items-center gap-2"
+              >
+                <Heart 
+                  size={24} 
+                  fill={isLiked ? 'black' : 'none'} 
+                  stroke={isLiked ? 'black' : 'currentColor'} 
+                />
+                {likeCount > 0 && <span className="text-sm">{likeCount}</span>}
               </button>
-              <button className="hover:opacity-70">
+              <button 
+                onClick={() => setShowComments(!showComments)} 
+                className="hover:opacity-70 flex items-center gap-2"
+              >
                 <MessageCircle size={24} />
+                {comments.length > 0 && <span className="text-sm">{comments.length}</span>}
               </button>
             </div>
             
-            <p className="text-base mb-2">{currentMoment?.caption}</p>
+            <p className="text-base mb-2">
+              <span className="font-medium mr-2">{momentUser?.username}</span>
+              {currentMoment?.caption}
+            </p>
             <p className="text-xs text-gray-500 mb-6">
               {new Date(currentMoment?.created_at).toLocaleString()}
             </p>
 
+            {/* Comments section */}
+            {showComments && (
+              <div className="border-t pt-4 mt-4">
+                <h3 className="font-medium mb-4">Comments</h3>
+                
+                {/* Comments list */}
+                <div className="space-y-3 mb-4 max-h-60 overflow-y-auto">
+                  {comments.map(comment => {
+                    const commentUser = users.find(u => u.id === comment.user_id);
+                    return (
+                      <div key={comment.id} className="text-sm">
+                        <span className="font-medium mr-2">{commentUser?.username || 'Unknown'}</span>
+                        <span>{comment.text}</span>
+                      </div>
+                    );
+                  })}
+                  {comments.length === 0 && (
+                    <p className="text-sm text-gray-400 text-center py-4">No comments yet</p>
+                  )}
+                </div>
+
+                {/* Add comment */}
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="Add a comment..."
+                    value={newComment}
+                    onChange={(e) => setNewComment(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && addComment(currentMoment?.id)}
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-gray-400"
+                  />
+                  <button
+                    onClick={() => addComment(currentMoment?.id)}
+                    disabled={!newComment.trim()}
+                    className="px-4 py-2 bg-black text-white rounded-lg disabled:opacity-30 hover:bg-gray-800"
+                  >
+                    Post
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* Navigation to other moments */}
             {userMoments.length > 1 && (
-              <div className="flex gap-2 pt-4 border-t">
+              <div className="flex gap-2 pt-4 border-t mt-4">
                 {currentMomentIndex > 0 && (
                   <button
                     onClick={() => {
                       setCurrentMomentIndex(currentMomentIndex - 1);
+                      setShowComments(false);
                       window.scrollTo(0, 0);
                     }}
                     className="flex-1 py-2 px-4 bg-gray-100 rounded-lg text-sm hover:bg-gray-200"
@@ -551,6 +665,7 @@ const App = () => {
                   <button
                     onClick={() => {
                       setCurrentMomentIndex(currentMomentIndex + 1);
+                      setShowComments(false);
                       window.scrollTo(0, 0);
                     }}
                     className="flex-1 py-2 px-4 bg-gray-100 rounded-lg text-sm hover:bg-gray-200"
