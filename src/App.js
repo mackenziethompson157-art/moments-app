@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback, memo } from 'react';
-import { Heart, MessageCircle, Send, Search, Home, PlusSquare, User, ArrowLeft, ChevronLeft, ChevronRight, Upload, LogOut, Camera } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Heart, MessageCircle, Send, Search, Home, PlusSquare, User, ArrowLeft, ChevronLeft, ChevronRight, LogOut, Camera } from 'lucide-react';
 
 // Supabase client setup
 const SUPABASE_URL = 'https://emcnnvxvwmkmuudxbtqp.supabase.co';
@@ -255,8 +255,8 @@ const App = () => {
       
       // Upload image
       const fileName = `${Date.now()}_${newMoment.image.name}`;
-      await supabase.uploadFile('moments', fileName, newMoment.image);
-      const imageUrl = supabase.getPublicUrl('moments', fileName);
+      await supabase.uploadFile('Moments', fileName, newMoment.image);
+      const imageUrl = supabase.getPublicUrl('Moments', fileName);
 
       // Create moment
       await supabase.insert('moments', {
@@ -338,7 +338,6 @@ const App = () => {
                 placeholder="Username"
                 value={authForm.username}
                 onChange={(e) => setAuthForm({ ...authForm, username: e.target.value })}
-                onKeyDown={(e) => e.stopPropagation()}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-gray-400"
               />
             )}
@@ -348,7 +347,6 @@ const App = () => {
               placeholder="Email"
               value={authForm.email}
               onChange={(e) => setAuthForm({ ...authForm, email: e.target.value })}
-              onKeyDown={(e) => e.stopPropagation()}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-gray-400"
             />
             
@@ -357,7 +355,6 @@ const App = () => {
               placeholder="Password"
               value={authForm.password}
               onChange={(e) => setAuthForm({ ...authForm, password: e.target.value })}
-              onKeyDown={(e) => e.stopPropagation()}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-gray-400"
             />
             
@@ -533,7 +530,7 @@ const App = () => {
     );
   };
 
-  // Search View - moved outside to prevent recreation
+  // Search View
   const SearchView = () => {
     const filteredUsers = users.filter(u => 
       u.id !== supabase.user.id &&
@@ -545,9 +542,14 @@ const App = () => {
       <div className="pb-20">
         <div className="sticky top-0 bg-white border-b border-gray-200 p-4 z-10">
           <h1 className="text-2xl font-light mb-4">Find Friends</h1>
-          <SearchInput 
-            value={searchQuery} 
-            onChange={(e) => setSearchQuery(e.target.value)} 
+          <input
+            key="search-input"
+            type="text"
+            placeholder="Search username..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            autoComplete="off"
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-gray-400"
           />
         </div>
         
@@ -615,9 +617,14 @@ const App = () => {
           />
         </label>
         
-        <CaptionInput
+        <textarea
+          key="caption-input"
+          placeholder="What's happening?..."
           value={newMoment.caption}
           onChange={(e) => setNewMoment(prev => ({ ...prev, caption: e.target.value }))}
+          autoComplete="off"
+          className="w-full p-4 border border-gray-300 rounded-lg focus:outline-none focus:border-gray-400 resize-none"
+          rows="4"
         />
       </div>
     </div>
