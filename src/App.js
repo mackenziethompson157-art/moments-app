@@ -554,9 +554,9 @@ const App = () => {
     };
 
     return (
-      <div className="fixed inset-0 bg-white z-50 flex flex-col">
+      <div className="fixed inset-0 bg-white z-50">
         {/* Header - fixed */}
-        <div className="bg-white border-b border-gray-200 p-4 flex items-center justify-between flex-shrink-0">
+        <div className="absolute top-0 left-0 right-0 bg-white border-b border-gray-200 p-4 flex items-center justify-between z-20">
           <button onClick={() => {
             setCurrentView('feed');
             setShowCommentsForMoment(null);
@@ -572,13 +572,13 @@ const App = () => {
           <div className="w-6"></div>
         </div>
 
-        {/* Scrollable content */}
-        <div className="flex-1 overflow-y-auto">
+        {/* Scrollable content - starts below header */}
+        <div className="h-full overflow-y-scroll pt-16 pb-4">
           <div className="max-w-lg mx-auto">
-            {/* All images in current moment - vertical scroll */}
+            {/* All images in current moment */}
             {imageUrls.map((imageUrl, imgIndex) => (
-              <div key={imgIndex} className="w-full">
-                <img src={imageUrl} alt="" className="w-full object-cover" />
+              <div key={imgIndex} className="w-full mb-2">
+                <img src={imageUrl} alt="" className="w-full" />
               </div>
             ))}
             
@@ -626,7 +626,7 @@ const App = () => {
                   <h3 className="font-medium mb-4">Comments</h3>
                   
                   {/* Comments list */}
-                  <div className="space-y-3 mb-4 max-h-60 overflow-y-auto">
+                  <div className="space-y-3 mb-4">
                     {comments.map(comment => {
                       const commentUser = users.find(u => u.id === comment.user_id);
                       return (
@@ -637,24 +637,23 @@ const App = () => {
                       );
                     })}
                     {comments.length === 0 && (
-                      <p className="text-sm text-gray-400 text-center py-4">No comments yet</p>
+                      <p className="text-sm text-gray-400 text-center py-4">No comments yet. Be the first!</p>
                     )}
                   </div>
 
-                  {/* Add comment - using onBlur to work around focus issue */}
+                  {/* Add comment */}
                   <div className="space-y-2">
                     <textarea
-                      key={`comment-${currentMoment?.id}`}
-                      placeholder="Add a comment... (type then click Post)"
+                      placeholder="Type your comment here..."
                       value={newComment}
                       onChange={(e) => setNewComment(e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-gray-400 resize-none"
-                      rows="2"
+                      rows="3"
                     />
                     <button
                       onClick={handleAddComment}
                       disabled={!newComment.trim()}
-                      className="w-full py-2 bg-black text-white rounded-lg disabled:opacity-30 hover:bg-gray-800"
+                      className="w-full py-2 bg-black text-white rounded-lg disabled:opacity-30 hover:bg-gray-800 disabled:cursor-not-allowed"
                     >
                       Post Comment
                     </button>
@@ -662,15 +661,14 @@ const App = () => {
                 </div>
               )}
 
-              {/* Navigation to other moments */}
+              {/* Navigation */}
               {userMoments.length > 1 && (
-                <div className="flex gap-2 pt-4 border-t mt-4">
+                <div className="flex gap-2 pt-4 border-t mt-6">
                   {currentMomentIndex > 0 && (
                     <button
                       onClick={() => {
                         setCurrentMomentIndex(currentMomentIndex - 1);
                         setShowCommentsForMoment(null);
-                        window.scrollTo(0, 0);
                       }}
                       className="flex-1 py-2 px-4 bg-gray-100 rounded-lg text-sm hover:bg-gray-200"
                     >
@@ -682,7 +680,6 @@ const App = () => {
                       onClick={() => {
                         setCurrentMomentIndex(currentMomentIndex + 1);
                         setShowCommentsForMoment(null);
-                        window.scrollTo(0, 0);
                       }}
                       className="flex-1 py-2 px-4 bg-gray-100 rounded-lg text-sm hover:bg-gray-200"
                     >
