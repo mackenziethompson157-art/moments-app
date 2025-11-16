@@ -497,17 +497,17 @@ const App = () => {
     }, [currentMoment?.id]);
 
     const handleAddCommentFromRef = async () => {
-      const commentText = commentInputRef.current?.value || '';
+      const commentText = commentInputRef.current?.textContent || '';
       if (commentText.trim() && currentMoment) {
         try {
           await supabase.insert('comments', {
             moment_id: currentMoment.id,
             user_id: supabase.user.id,
-            text: commentText
+            text: commentText.trim()
           });
           await loadComments(currentMoment.id);
           if (commentInputRef.current) {
-            commentInputRef.current.value = '';
+            commentInputRef.current.textContent = '';
           }
         } catch (err) {
           setError(err.message);
@@ -596,12 +596,20 @@ const App = () => {
               </div>
 
               <div className="space-y-3">
-                <textarea
+                <div
                   ref={commentInputRef}
+                  contentEditable
+                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-black min-h-[80px] max-h-[200px] overflow-y-auto"
                   placeholder="Write a comment..."
-                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-black"
-                  rows="3"
-                  defaultValue=""
+                  suppressContentEditableWarning
+                  onInput={(e) => {
+                    // Keep a backup in case we need it
+                    e.currentTarget.dataset.value = e.currentTarget.textContent;
+                  }}
+                  style={{
+                    whiteSpace: 'pre-wrap',
+                    wordWrap: 'break-word'
+                  }}
                 />
                 <button
                   onClick={handleAddCommentFromRef}
@@ -610,7 +618,7 @@ const App = () => {
                   Post Comment
                 </button>
                 <p className="text-xs text-gray-500 text-center">
-                  Tap in box, type your comment, then tap Post
+                  Click in box above, type your comment, then click Post
                 </p>
               </div>
             </div>
