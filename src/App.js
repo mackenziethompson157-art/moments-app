@@ -1,4 +1,113 @@
-import React, { useState, useEffect } from 'react';
+// Album View - Scroll through user's moments and their images
+  const AlbumView = () => {
+    const userMoments = moments.filter(m => m.user_id === selectedUserId);
+    const currentMoment = userMoments[currentMomentIndex];
+    const momentUser = users.find(u => u.id === selectedUserId);
+    const commentInputRef = useRef(null);
+    
+    // Parse image URLs for current moment
+    let imageUrls = [];
+    if (currentMoment) {
+      try {
+        const parsed = JSON.parse(currentMoment.image_url);
+        imageUrls = Array.isArray(parsed) ? parsed : [parsed];
+      } catch {
+        imageUrls = [currentMoment.image_url];
+      }
+    }
+
+    // Check if current user liked this moment
+    const isLiked = currentMoment && likes.some(l => 
+      l.user_id === supabase.user.id && l.moment_id === currentMoment.id
+    );
+    
+    // Count likes for this moment
+    const likeCount = currentMoment ? likes.filter(l => l.moment_id === currentMoment.id).length : 0;
+
+    // Load comments when view opens or moment changes
+    React.useEffect(() => {
+      if (currentMoment) {
+        loadComments(currentMoment.id);
+      }
+    }, [currentMoment?.id]);
+
+    const handleAddCommentFromRef = () => {
+      const commentText = commentInputRef.current?.value || '';
+      if (commentText.trim() && currentMoment) {
+        // Call addComment with the text directly
+        supabase.insert('comments', {
+          moment_id: currentMoment.id,
+          user_id: supabase.user.id,
+          text: commentText
+        }).then(() => {
+          loadComments(currentMoment.id);
+          if (commentInputRef.current) {
+            commentInputRef.current.value = '';
+          }
+        }).catch(err => setError(err.message));
+      }
+    };
+
+    return (
+      <div className="pb-20">
+        {/* Header - NOT fixed, just normal */}
+        <div className="bg-white border-b border-gray-200 p-4 sticky top-0 z-10">
+          <div className="flex items-center justify-between">
+            <button onClick={() => {
+              setCurrentView('feed');
+              setShowCommentsForMoment(null);
+            }} className="text-gray-600">
+              <ArrowLeft size={24} />
+            </button>
+            <div className="text-center">
+              <p className="text-sm font-medium">{momentUser?.username}</p>
+              <p className="text-xs text-gray-500">
+                {currentMomentIndex + 1} of {userMoments.length}
+              </p>
+            </div>
+            <div className="w-6"></div>
+          </div>
+        </div>
+
+        {/* Content - normal flow, no fancy positioning */}
+        <div className="max-w-lg mx-auto">
+          {/* All images */}
+          {imageUrls.map((imageUrl, img  // Album View - Scroll through user's moments and their images
+  const AlbumView = () => {
+    const userMoments = moments.filter(m => m.user_id === selectedUserId);
+    const currentMoment = userMoments[currentMomentIndex];
+    const momentUser = users.find(u => u.id === selectedUserId);
+    const commentInputRef = useRef(null);
+    
+    // Parse image URLs for current moment
+    let imageUrls = [];
+    if (currentMoment) {
+      try {
+        const parsed = JSON.parse(currentMoment.image_url);
+        imageUrls = Array.isArray(parsed) ? parsed : [parsed];
+      } catch {
+        imageUrls = [currentMoment.image_url];
+      }
+    }
+
+    // Check if current user liked this moment
+    const isLiked = currentMoment && likes.some(l => 
+      l.user_id === supabase.user.id && l.moment_id === currentMoment.id
+    );
+    
+    // Count likes for this moment
+    const likeCount = currentMoment ? likes.filter(l => l.moment_id === currentMoment.id).length : 0;
+
+    // Load comments when view opens or moment changes
+    React.useEffect(() => {
+      if (currentMoment) {
+        loadComments(currentMoment.id);
+      }
+    }, [currentMoment?.id]);
+
+    const handleAddComment = () => {
+      const commentText = commentInputRef.current?.value || '';
+      if (commentText.trim() && currentimport React, { useState, useEffect, useRef } from 'react';
 import { Heart, MessageCircle, Send, Search, Home, PlusSquare, User, ArrowLeft, ChevronLeft, ChevronRight, LogOut, Camera } from 'lucide-react';
 
 // Supabase client setup
@@ -620,46 +729,45 @@ const App = () => {
                 {new Date(currentMoment?.created_at).toLocaleString()}
               </p>
 
-              {/* Comments section */}
-              {showCommentsForMoment === currentMoment?.id && (
-                <div className="border-t pt-4 mt-4">
-                  <h3 className="font-medium mb-4">Comments</h3>
-                  
-                  {/* Comments list */}
-                  <div className="space-y-3 mb-4">
-                    {comments.map(comment => {
-                      const commentUser = users.find(u => u.id === comment.user_id);
-                      return (
-                        <div key={comment.id} className="text-sm">
-                          <span className="font-medium mr-2">{commentUser?.username || 'Unknown'}</span>
-                          <span>{comment.text}</span>
-                        </div>
-                      );
-                    })}
-                    {comments.length === 0 && (
-                      <p className="text-sm text-gray-400 text-center py-4">No comments yet. Be the first!</p>
-                    )}
-                  </div>
-
-                  {/* Add comment */}
-                  <div className="space-y-2">
-                    <textarea
-                      placeholder="Type your comment here..."
-                      value={newComment}
-                      onChange={(e) => setNewComment(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-gray-400 resize-none"
-                      rows="3"
-                    />
-                    <button
-                      onClick={handleAddComment}
-                      disabled={!newComment.trim()}
-                      className="w-full py-2 bg-black text-white rounded-lg disabled:opacity-30 hover:bg-gray-800 disabled:cursor-not-allowed"
-                    >
-                      Post Comment
-                    </button>
-                  </div>
+              {/* Comments section - ALWAYS VISIBLE FOR TESTING */}
+              <div className="border-t pt-4 mt-4">
+                <h3 className="font-medium mb-4">Comments</h3>
+                
+                {/* Comments list */}
+                <div className="space-y-3 mb-4">
+                  {comments.map(comment => {
+                    const commentUser = users.find(u => u.id === comment.user_id);
+                    return (
+                      <div key={comment.id} className="text-sm bg-gray-50 p-2 rounded">
+                        <span className="font-medium mr-2">{commentUser?.username || 'Unknown'}</span>
+                        <span>{comment.text}</span>
+                      </div>
+                    );
+                  })}
+                  {comments.length === 0 && (
+                    <p className="text-sm text-gray-400 text-center py-4">No comments yet. Be the first!</p>
+                  )}
                 </div>
-              )}
+
+                {/* Add comment */}
+                <div className="space-y-2">
+                  <textarea
+                    placeholder="Type your comment here..."
+                    value={newComment}
+                    onChange={(e) => setNewComment(e.target.value)}
+                    className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-blue-400"
+                    rows="3"
+                  />
+                  <button
+                    onClick={handleAddComment}
+                    disabled={!newComment.trim()}
+                    className="w-full py-3 bg-black text-white rounded-lg disabled:opacity-30 hover:bg-gray-800 disabled:cursor-not-allowed font-medium"
+                  >
+                    {newComment.trim() ? 'Post Comment' : 'Type something first'}
+                  </button>
+                  <p className="text-xs text-gray-500">Click in box above, type your comment, then click Post</p>
+                </div>
+              </div>
 
               {/* Navigation */}
               {userMoments.length > 1 && (
