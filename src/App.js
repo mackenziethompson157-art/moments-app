@@ -155,15 +155,6 @@ const App = () => {
   const [authMode, setAuthMode] = useState('signin');
   const [authForm, setAuthForm] = useState({ email: '', password: '', username: '' });
 
-  // Memoized handlers to prevent re-renders
-  const handleSearchChange = useCallback((e) => {
-    setSearchQuery(e.target.value);
-  }, []);
-
-  const handleCaptionChange = useCallback((e) => {
-    setNewMoment(prev => ({ ...prev, caption: e.target.value }));
-  }, []);
-
   useEffect(() => {
     if (isAuthenticated) {
       loadData();
@@ -189,10 +180,12 @@ const App = () => {
       const followingData = await supabase.select('follows', `follower_id=eq.${supabase.user.id}`);
       setFollowing(followingData);
 
-      // Load moments from followed users
-      const followedIds = followingData.map(f => f.following_id).join(',');
-      if (followedIds) {
-        const momentsData = await supabase.select('moments', `user_id=in.(${followedIds})&order=created_at.desc`);
+      // Load moments from followed users AND your own moments
+      const followedIds = followingData.map(f => f.following_id);
+      const allUserIds = [...followedIds, supabase.user.id].join(',');
+      
+      if (allUserIds) {
+        const momentsData = await supabase.select('moments', `user_id=in.(${allUserIds})&order=created_at.desc`);
         setMoments(momentsData);
       }
       
@@ -540,8 +533,8 @@ const App = () => {
     );
   };
 
-  // Search View
-  const SearchView = useCallback(() => {
+  // Search View - moved outside to prevent recreation
+  const SearchView = () => {
     const filteredUsers = users.filter(u => 
       u.id !== supabase.user.id &&
       (u.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -556,7 +549,8 @@ const App = () => {
             type="text"
             placeholder="Search username..."
             value={searchQuery}
-            onChange={handleSearchChange}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            autoComplete="off"
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-gray-400"
           />
         </div>
@@ -586,10 +580,10 @@ const App = () => {
         </div>
       </div>
     );
-  }, [searchQuery, users, following, handleSearchChange]);
+  };
 
   // Post View
-  const PostView = useCallback(() => (
+  const PostView = () => (
     <div className="pb-20">
       <div className="sticky top-0 bg-white border-b border-gray-200 p-4 z-10 flex items-center justify-between">
         <button onClick={() => setCurrentView('feed')} className="text-gray-600">
@@ -628,40 +622,19 @@ const App = () => {
         <textarea
           placeholder="What's happening?..."
           value={newMoment.caption}
-          onChange={handleCaptionChange}
+          onChange={(e) => setNewMoment(prev => ({ ...prev, caption: e.target.value }))}
+          autoComplete="off"
           className="w-full p-4 border border-gray-300 rounded-lg focus:outline-none focus:border-gray-400 resize-none"
           rows="4"
         />
       </div>
     </div>
-  ), [newMoment, loading, handleCaptionChange, handlePostMoment, handleImageSelect]);
+  );
 
   // Profile View
   const ProfileView = () => {
     const currentUserProfile = users.find(u => u.id === supabase.user?.id);
     const yourMoments = moments.filter(m => m.user_id === supabase.user?.id);
-    const [loadedProfile, setLoadedProfile] = useState(false);
-    
-    // Load your moments only once
-    useEffect(() => {
-      if (loadedProfile || !supabase.user?.id) return;
-      
-      const loadYourMoments = async () => {
-        try {
-          const userMoments = await supabase.select('moments', `user_id=eq.${supabase.user.id}&order=created_at.desc`);
-          // Merge with existing moments, avoiding duplicates
-          setMoments(prev => {
-            const existingIds = prev.map(m => m.id);
-            const newMoments = userMoments.filter(m => !existingIds.includes(m.id));
-            return [...prev, ...newMoments];
-          });
-          setLoadedProfile(true);
-        } catch (err) {
-          console.error('Error loading your moments:', err);
-        }
-      };
-      loadYourMoments();
-    }, [loadedProfile]);
     
     return (
       <div className="pb-20">
