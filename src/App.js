@@ -1,113 +1,4 @@
-// Album View - Scroll through user's moments and their images
-  const AlbumView = () => {
-    const userMoments = moments.filter(m => m.user_id === selectedUserId);
-    const currentMoment = userMoments[currentMomentIndex];
-    const momentUser = users.find(u => u.id === selectedUserId);
-    const commentInputRef = useRef(null);
-    
-    // Parse image URLs for current moment
-    let imageUrls = [];
-    if (currentMoment) {
-      try {
-        const parsed = JSON.parse(currentMoment.image_url);
-        imageUrls = Array.isArray(parsed) ? parsed : [parsed];
-      } catch {
-        imageUrls = [currentMoment.image_url];
-      }
-    }
-
-    // Check if current user liked this moment
-    const isLiked = currentMoment && likes.some(l => 
-      l.user_id === supabase.user.id && l.moment_id === currentMoment.id
-    );
-    
-    // Count likes for this moment
-    const likeCount = currentMoment ? likes.filter(l => l.moment_id === currentMoment.id).length : 0;
-
-    // Load comments when view opens or moment changes
-    React.useEffect(() => {
-      if (currentMoment) {
-        loadComments(currentMoment.id);
-      }
-    }, [currentMoment?.id]);
-
-    const handleAddCommentFromRef = () => {
-      const commentText = commentInputRef.current?.value || '';
-      if (commentText.trim() && currentMoment) {
-        // Call addComment with the text directly
-        supabase.insert('comments', {
-          moment_id: currentMoment.id,
-          user_id: supabase.user.id,
-          text: commentText
-        }).then(() => {
-          loadComments(currentMoment.id);
-          if (commentInputRef.current) {
-            commentInputRef.current.value = '';
-          }
-        }).catch(err => setError(err.message));
-      }
-    };
-
-    return (
-      <div className="pb-20">
-        {/* Header - NOT fixed, just normal */}
-        <div className="bg-white border-b border-gray-200 p-4 sticky top-0 z-10">
-          <div className="flex items-center justify-between">
-            <button onClick={() => {
-              setCurrentView('feed');
-              setShowCommentsForMoment(null);
-            }} className="text-gray-600">
-              <ArrowLeft size={24} />
-            </button>
-            <div className="text-center">
-              <p className="text-sm font-medium">{momentUser?.username}</p>
-              <p className="text-xs text-gray-500">
-                {currentMomentIndex + 1} of {userMoments.length}
-              </p>
-            </div>
-            <div className="w-6"></div>
-          </div>
-        </div>
-
-        {/* Content - normal flow, no fancy positioning */}
-        <div className="max-w-lg mx-auto">
-          {/* All images */}
-          {imageUrls.map((imageUrl, img  // Album View - Scroll through user's moments and their images
-  const AlbumView = () => {
-    const userMoments = moments.filter(m => m.user_id === selectedUserId);
-    const currentMoment = userMoments[currentMomentIndex];
-    const momentUser = users.find(u => u.id === selectedUserId);
-    const commentInputRef = useRef(null);
-    
-    // Parse image URLs for current moment
-    let imageUrls = [];
-    if (currentMoment) {
-      try {
-        const parsed = JSON.parse(currentMoment.image_url);
-        imageUrls = Array.isArray(parsed) ? parsed : [parsed];
-      } catch {
-        imageUrls = [currentMoment.image_url];
-      }
-    }
-
-    // Check if current user liked this moment
-    const isLiked = currentMoment && likes.some(l => 
-      l.user_id === supabase.user.id && l.moment_id === currentMoment.id
-    );
-    
-    // Count likes for this moment
-    const likeCount = currentMoment ? likes.filter(l => l.moment_id === currentMoment.id).length : 0;
-
-    // Load comments when view opens or moment changes
-    React.useEffect(() => {
-      if (currentMoment) {
-        loadComments(currentMoment.id);
-      }
-    }, [currentMoment?.id]);
-
-    const handleAddComment = () => {
-      const commentText = commentInputRef.current?.value || '';
-      if (commentText.trim() && currentimport React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Heart, MessageCircle, Send, Search, Home, PlusSquare, User, ArrowLeft, ChevronLeft, ChevronRight, LogOut, Camera } from 'lucide-react';
 
 // Supabase client setup
@@ -125,7 +16,6 @@ class SupabaseClient {
   }
 
   async request(endpoint, options = {}) {
-    // Always get fresh token from localStorage
     this.token = localStorage.getItem('supabase_token');
     
     const headers = {
@@ -148,7 +38,6 @@ class SupabaseClient {
     return response.json();
   }
 
-  // Auth methods
   async signUp(email, password, username) {
     const data = await this.request('/auth/v1/signup', {
       method: 'POST',
@@ -188,7 +77,6 @@ class SupabaseClient {
     localStorage.removeItem('supabase_user');
   }
 
-  // Database methods
   async select(table, query = '') {
     return this.request(`/rest/v1/${table}?${query}`, {
       headers: { 'Prefer': 'return=representation' }
@@ -217,9 +105,7 @@ class SupabaseClient {
     });
   }
 
-  // Storage methods
   async uploadFile(bucket, path, file) {
-    // Always get fresh token from localStorage
     this.token = localStorage.getItem('supabase_token');
     
     const response = await fetch(`${this.url}/storage/v1/object/${bucket}/${path}`, {
@@ -257,15 +143,11 @@ const App = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [newMoment, setNewMoment] = useState({ caption: '', images: [], previews: [] });
   const [currentMomentIndex, setCurrentMomentIndex] = useState(0);
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [likes, setLikes] = useState([]);
-  const [showCommentsForMoment, setShowCommentsForMoment] = useState(null);
   const [comments, setComments] = useState([]);
-  const [newComment, setNewComment] = useState('');
 
-  // Auth state
   const [authMode, setAuthMode] = useState('signin');
   const [authForm, setAuthForm] = useState({ email: '', password: '', username: '' });
 
@@ -279,22 +161,18 @@ const App = () => {
     try {
       setLoading(true);
       
-      // Verify user is authenticated
       if (!supabase.user || !supabase.user.id) {
         console.log('No authenticated user found');
         setLoading(false);
         return;
       }
       
-      // Load users
       const usersData = await supabase.select('profiles', 'select=*');
       setUsers(usersData);
 
-      // Load following relationships
       const followingData = await supabase.select('follows', `follower_id=eq.${supabase.user.id}`);
       setFollowing(followingData);
 
-      // Load moments from followed users AND your own moments
       const followedIds = followingData.map(f => f.following_id);
       const allUserIds = [...followedIds, supabase.user.id].join(',');
       
@@ -303,7 +181,6 @@ const App = () => {
         setMoments(momentsData);
       }
       
-      // Load all likes
       const likesData = await supabase.select('likes', 'select=*');
       setLikes(likesData);
       
@@ -323,11 +200,8 @@ const App = () => {
 
       if (authMode === 'signup') {
         const authData = await supabase.signUp(authForm.email, authForm.password, authForm.username);
-        
-        // Wait a moment for auth to complete
         await new Promise(resolve => setTimeout(resolve, 500));
         
-        // Create profile using the returned user ID
         if (authData.user) {
           await supabase.insert('profiles', {
             id: authData.user.id,
@@ -372,7 +246,6 @@ const App = () => {
     try {
       setLoading(true);
       
-      // Upload all images
       const imageUrls = [];
       for (const image of newMoment.images) {
         const fileName = `${Date.now()}_${Math.random()}_${image.name}`;
@@ -381,14 +254,12 @@ const App = () => {
         imageUrls.push(imageUrl);
       }
 
-      // Create moment with multiple image URLs (stored as JSON string)
       await supabase.insert('moments', {
         user_id: supabase.user.id,
-        image_url: JSON.stringify(imageUrls), // Store array as JSON
+        image_url: JSON.stringify(imageUrls),
         caption: newMoment.caption
       });
 
-      // Reload moments
       await loadData();
       
       setNewMoment({ caption: '', images: [], previews: [] });
@@ -450,27 +321,6 @@ const App = () => {
     }
   };
 
-  const addComment = async (momentId) => {
-    if (!newComment.trim()) return;
-    
-    try {
-      const comment = await supabase.insert('comments', {
-        moment_id: momentId,
-        user_id: supabase.user.id,
-        text: newComment
-      });
-      
-      if (comment && comment.length > 0) {
-        setComments([...comments, comment[0]]);
-      }
-      
-      setNewComment('');
-    } catch (err) {
-      setError(err.message);
-    }
-  };
-
-  // Auth Screen
   if (!isAuthenticated) {
     return (
       <div className="max-w-md mx-auto bg-white min-h-screen flex items-center justify-center p-4">
@@ -531,7 +381,6 @@ const App = () => {
     );
   }
 
-  // Get following users and ALL their moments for feed
   const followingUserIds = following.map(f => f.following_id);
   const feedMoments = moments
     .filter(m => followingUserIds.includes(m.user_id))
@@ -541,7 +390,6 @@ const App = () => {
     })
     .filter(m => m.user);
 
-  // Navigation Bar
   const NavBar = () => (
     <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 flex justify-around py-3">
       <button onClick={() => setCurrentView('feed')} className={`p-2 ${currentView === 'feed' ? 'text-black' : 'text-gray-400'}`}>
@@ -559,7 +407,6 @@ const App = () => {
     </div>
   );
 
-  // Feed View - Grid of ALL moments
   const FeedView = () => (
     <div className="pb-20">
       <div className="sticky top-0 bg-white border-b border-gray-200 p-4 z-10 flex justify-between items-center">
@@ -580,7 +427,6 @@ const App = () => {
         <>
           <div className="grid grid-cols-2 gap-3 p-4">
             {feedMoments.map(moment => {
-              // Parse image URLs (could be single or array)
               let imageUrl;
               try {
                 const parsed = JSON.parse(moment.image_url);
@@ -595,11 +441,9 @@ const App = () => {
                   onClick={() => {
                     setSelectedUserId(moment.user_id);
                     setCurrentView('album');
-                    // Find index of this moment in user's moments
                     const userMoments = moments.filter(m => m.user_id === moment.user_id);
                     const index = userMoments.findIndex(m => m.id === moment.id);
                     setCurrentMomentIndex(index >= 0 ? index : 0);
-                    setCurrentImageIndex(0);
                   }}
                   className="aspect-square bg-gray-50 rounded-2xl overflow-hidden hover:opacity-80 transition-opacity"
                 >
@@ -624,13 +468,12 @@ const App = () => {
     </div>
   );
 
-  // Album View - Scroll through user's moments and their images
   const AlbumView = () => {
     const userMoments = moments.filter(m => m.user_id === selectedUserId);
     const currentMoment = userMoments[currentMomentIndex];
     const momentUser = users.find(u => u.id === selectedUserId);
+    const commentInputRef = useRef(null);
     
-    // Parse image URLs for current moment
     let imageUrls = [];
     if (currentMoment) {
       try {
@@ -641,169 +484,169 @@ const App = () => {
       }
     }
 
-    // Check if current user liked this moment
     const isLiked = currentMoment && likes.some(l => 
       l.user_id === supabase.user.id && l.moment_id === currentMoment.id
     );
     
-    // Count likes for this moment
     const likeCount = currentMoment ? likes.filter(l => l.moment_id === currentMoment.id).length : 0;
 
-    // Load comments when view opens or moment changes
     React.useEffect(() => {
       if (currentMoment) {
         loadComments(currentMoment.id);
       }
     }, [currentMoment?.id]);
 
-    const handleAddComment = () => {
-      if (newComment.trim()) {
-        addComment(currentMoment?.id);
+    const handleAddCommentFromRef = async () => {
+      const commentText = commentInputRef.current?.value || '';
+      if (commentText.trim() && currentMoment) {
+        try {
+          await supabase.insert('comments', {
+            moment_id: currentMoment.id,
+            user_id: supabase.user.id,
+            text: commentText
+          });
+          await loadComments(currentMoment.id);
+          if (commentInputRef.current) {
+            commentInputRef.current.value = '';
+          }
+        } catch (err) {
+          setError(err.message);
+        }
       }
     };
 
     return (
-      <div className="fixed inset-0 bg-white z-50">
-        {/* Header - fixed */}
-        <div className="absolute top-0 left-0 right-0 bg-white border-b border-gray-200 p-4 flex items-center justify-between z-20">
-          <button onClick={() => {
-            setCurrentView('feed');
-            setShowCommentsForMoment(null);
-          }} className="text-gray-600">
-            <ArrowLeft size={24} />
-          </button>
-          <div className="text-center">
-            <p className="text-sm font-medium">{momentUser?.username}</p>
-            <p className="text-xs text-gray-500">
-              {currentMomentIndex + 1} of {userMoments.length}
-            </p>
+      <div className="min-h-screen bg-white pb-20">
+        <div className="sticky top-0 bg-white border-b border-gray-200 p-4 z-10">
+          <div className="flex items-center justify-between max-w-lg mx-auto">
+            <button 
+              onClick={() => setCurrentView('feed')} 
+              className="text-gray-600"
+            >
+              <ArrowLeft size={24} />
+            </button>
+            <div className="text-center">
+              <p className="text-sm font-medium">{momentUser?.username}</p>
+              <p className="text-xs text-gray-500">
+                {currentMomentIndex + 1} of {userMoments.length}
+              </p>
+            </div>
+            <div className="w-6"></div>
           </div>
-          <div className="w-6"></div>
         </div>
 
-        {/* Scrollable content - starts below header */}
-        <div className="h-full overflow-y-scroll pt-16 pb-4">
-          <div className="max-w-lg mx-auto">
-            {/* All images in current moment */}
-            {imageUrls.map((imageUrl, imgIndex) => (
-              <div key={imgIndex} className="w-full mb-2">
-                <img src={imageUrl} alt="" className="w-full" />
-              </div>
-            ))}
-            
-            {/* Caption and actions */}
-            <div className="p-6 bg-white">
-              <div className="flex gap-4 mb-4">
-                <button 
-                  onClick={() => toggleLike(currentMoment?.id)} 
-                  className="hover:opacity-70 flex items-center gap-2"
-                >
-                  <Heart 
-                    size={24} 
-                    fill={isLiked ? 'black' : 'none'} 
-                    stroke={isLiked ? 'black' : 'currentColor'} 
-                  />
-                  {likeCount > 0 && <span className="text-sm">{likeCount}</span>}
-                </button>
-                <button 
-                  onClick={() => {
-                    if (showCommentsForMoment === currentMoment?.id) {
-                      setShowCommentsForMoment(null);
-                    } else {
-                      setShowCommentsForMoment(currentMoment?.id);
-                      loadComments(currentMoment?.id);
-                    }
-                  }} 
-                  className="hover:opacity-70 flex items-center gap-2"
-                >
-                  <MessageCircle size={24} />
-                  {comments.length > 0 && <span className="text-sm">{comments.length}</span>}
-                </button>
-              </div>
-              
-              <p className="text-base mb-2">
-                <span className="font-medium mr-2">{momentUser?.username}</span>
-                {currentMoment?.caption}
-              </p>
-              <p className="text-xs text-gray-500 mb-6">
-                {new Date(currentMoment?.created_at).toLocaleString()}
-              </p>
-
-              {/* Comments section - ALWAYS VISIBLE FOR TESTING */}
-              <div className="border-t pt-4 mt-4">
-                <h3 className="font-medium mb-4">Comments</h3>
-                
-                {/* Comments list */}
-                <div className="space-y-3 mb-4">
-                  {comments.map(comment => {
-                    const commentUser = users.find(u => u.id === comment.user_id);
-                    return (
-                      <div key={comment.id} className="text-sm bg-gray-50 p-2 rounded">
-                        <span className="font-medium mr-2">{commentUser?.username || 'Unknown'}</span>
-                        <span>{comment.text}</span>
-                      </div>
-                    );
-                  })}
-                  {comments.length === 0 && (
-                    <p className="text-sm text-gray-400 text-center py-4">No comments yet. Be the first!</p>
-                  )}
-                </div>
-
-                {/* Add comment */}
-                <div className="space-y-2">
-                  <textarea
-                    placeholder="Type your comment here..."
-                    value={newComment}
-                    onChange={(e) => setNewComment(e.target.value)}
-                    className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-blue-400"
-                    rows="3"
-                  />
-                  <button
-                    onClick={handleAddComment}
-                    disabled={!newComment.trim()}
-                    className="w-full py-3 bg-black text-white rounded-lg disabled:opacity-30 hover:bg-gray-800 disabled:cursor-not-allowed font-medium"
-                  >
-                    {newComment.trim() ? 'Post Comment' : 'Type something first'}
-                  </button>
-                  <p className="text-xs text-gray-500">Click in box above, type your comment, then click Post</p>
-                </div>
-              </div>
-
-              {/* Navigation */}
-              {userMoments.length > 1 && (
-                <div className="flex gap-2 pt-4 border-t mt-6">
-                  {currentMomentIndex > 0 && (
-                    <button
-                      onClick={() => {
-                        setCurrentMomentIndex(currentMomentIndex - 1);
-                        setShowCommentsForMoment(null);
-                      }}
-                      className="flex-1 py-2 px-4 bg-gray-100 rounded-lg text-sm hover:bg-gray-200"
-                    >
-                      ← Previous
-                    </button>
-                  )}
-                  {currentMomentIndex < userMoments.length - 1 && (
-                    <button
-                      onClick={() => {
-                        setCurrentMomentIndex(currentMomentIndex + 1);
-                        setShowCommentsForMoment(null);
-                      }}
-                      className="flex-1 py-2 px-4 bg-gray-100 rounded-lg text-sm hover:bg-gray-200"
-                    >
-                      Next →
-                    </button>
-                  )}
-                </div>
-              )}
+        <div className="max-w-lg mx-auto">
+          {imageUrls.map((imageUrl, imgIndex) => (
+            <div key={imgIndex} className="w-full">
+              <img 
+                src={imageUrl} 
+                alt={`Photo ${imgIndex + 1}`} 
+                className="w-full block"
+              />
             </div>
+          ))}
+          
+          <div className="p-6">
+            <div className="flex gap-4 mb-4">
+              <button 
+                onClick={() => toggleLike(currentMoment?.id)} 
+                className="flex items-center gap-2 hover:opacity-70"
+              >
+                <Heart 
+                  size={24} 
+                  fill={isLiked ? 'black' : 'none'} 
+                  stroke="currentColor"
+                />
+                {likeCount > 0 && <span className="text-sm">{likeCount}</span>}
+              </button>
+              <button className="flex items-center gap-2 hover:opacity-70">
+                <MessageCircle size={24} />
+                {comments.length > 0 && <span className="text-sm">{comments.length}</span>}
+              </button>
+            </div>
+            
+            <p className="text-base mb-2">
+              <span className="font-medium mr-2">{momentUser?.username}</span>
+              {currentMoment?.caption}
+            </p>
+            <p className="text-xs text-gray-500 mb-6">
+              {new Date(currentMoment?.created_at).toLocaleString()}
+            </p>
+
+            <div className="border-t pt-6">
+              <h3 className="font-medium text-lg mb-4">Comments</h3>
+              
+              <div className="space-y-3 mb-6">
+                {comments.map(comment => {
+                  const commentUser = users.find(u => u.id === comment.user_id);
+                  return (
+                    <div key={comment.id} className="bg-gray-50 p-3 rounded-lg">
+                      <span className="font-medium text-sm mr-2">
+                        {commentUser?.username || 'Unknown'}
+                      </span>
+                      <span className="text-sm">{comment.text}</span>
+                    </div>
+                  );
+                })}
+                {comments.length === 0 && (
+                  <p className="text-gray-400 text-center py-6 text-sm">
+                    No comments yet. Be the first!
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-3">
+                <textarea
+                  ref={commentInputRef}
+                  placeholder="Write a comment..."
+                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-black"
+                  rows="3"
+                  defaultValue=""
+                />
+                <button
+                  onClick={handleAddCommentFromRef}
+                  className="w-full py-3 bg-black text-white rounded-lg hover:bg-gray-800 font-medium"
+                >
+                  Post Comment
+                </button>
+                <p className="text-xs text-gray-500 text-center">
+                  Tap in box, type your comment, then tap Post
+                </p>
+              </div>
+            </div>
+
+            {userMoments.length > 1 && (
+              <div className="flex gap-3 pt-6 border-t mt-8">
+                {currentMomentIndex > 0 && (
+                  <button
+                    onClick={() => {
+                      setCurrentMomentIndex(currentMomentIndex - 1);
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                    className="flex-1 py-3 px-4 bg-gray-100 rounded-lg hover:bg-gray-200 font-medium"
+                  >
+                    ← Previous
+                  </button>
+                )}
+                {currentMomentIndex < userMoments.length - 1 && (
+                  <button
+                    onClick={() => {
+                      setCurrentMomentIndex(currentMomentIndex + 1);
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                    className="flex-1 py-3 px-4 bg-gray-100 rounded-lg hover:bg-gray-200 font-medium"
+                  >
+                    Next →
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>
     );
   };
 
-  // Search View
   const SearchView = () => {
     const filteredUsers = users.filter(u => 
       u.id !== supabase.user.id &&
@@ -853,7 +696,6 @@ const App = () => {
     );
   };
 
-  // Post View
   const PostView = () => (
     <div className="pb-20">
       <div className="sticky top-0 bg-white border-b border-gray-200 p-4 z-10 flex items-center justify-between">
@@ -899,106 +741,4 @@ const App = () => {
           ) : (
             <div className="flex flex-col items-center justify-center h-64">
               <Camera size={48} className="text-gray-400 mb-2" />
-              <p className="text-sm text-gray-500">Tap to select photos</p>
-              <p className="text-xs text-gray-400 mt-1">You can select multiple</p>
-            </div>
-          )}
-          <input
-            type="file"
-            accept="image/*"
-            multiple
-            onChange={handleImageSelect}
-            className="hidden"
-          />
-        </label>
-        
-        <textarea
-          key="caption-input"
-          placeholder="What's happening?..."
-          value={newMoment.caption}
-          onChange={(e) => setNewMoment(prev => ({ ...prev, caption: e.target.value }))}
-          autoComplete="off"
-          className="w-full p-4 border border-gray-300 rounded-lg focus:outline-none focus:border-gray-400 resize-none"
-          rows="4"
-        />
-      </div>
-    </div>
-  );
-
-  // Profile View
-  const ProfileView = () => {
-    const currentUserProfile = users.find(u => u.id === supabase.user?.id);
-    const yourMoments = moments.filter(m => m.user_id === supabase.user?.id);
-    
-    return (
-      <div className="pb-20">
-        <div className="sticky top-0 bg-white border-b border-gray-200 p-4 z-10">
-          <h1 className="text-2xl font-light">Profile</h1>
-        </div>
-        
-        <div className="p-6">
-          <div className="mb-6">
-            <p className="text-xl font-medium">{currentUserProfile?.username || 'Loading...'}</p>
-            <p className="text-sm text-gray-600">{currentUserProfile?.email || supabase.user?.email}</p>
-          </div>
-          
-          <div className="flex gap-8 mb-6 text-center">
-            <div>
-              <p className="text-2xl font-light">{yourMoments.length}</p>
-              <p className="text-xs text-gray-600">Moments</p>
-            </div>
-            <div>
-              <p className="text-2xl font-light">{following.length}</p>
-              <p className="text-xs text-gray-600">Following</p>
-            </div>
-          </div>
-          
-          <div className="border-t border-gray-200 pt-4">
-            <p className="text-sm text-gray-600 mb-4">Your Moments</p>
-            {yourMoments.length === 0 ? (
-              <p className="text-center text-gray-400 py-8 text-sm">No moments shared yet</p>
-            ) : (
-              <div className="grid grid-cols-3 gap-2">
-                {yourMoments.map(moment => {
-                  // Parse image URL(s)
-                  let firstImageUrl;
-                  try {
-                    const parsed = JSON.parse(moment.image_url);
-                    firstImageUrl = Array.isArray(parsed) ? parsed[0] : parsed;
-                  } catch {
-                    firstImageUrl = moment.image_url;
-                  }
-                  
-                  return (
-                    <div key={moment.id} className="aspect-square bg-gray-50 rounded overflow-hidden">
-                      <img src={firstImageUrl} alt="" className="w-full h-full object-cover" />
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-  return (
-    <div className="max-w-md mx-auto bg-white min-h-screen">
-      {error && (
-        <div className="bg-red-50 text-red-600 p-3 text-sm text-center">
-          {error}
-        </div>
-      )}
-      
-      {currentView === 'feed' && <FeedView />}
-      {currentView === 'album' && <AlbumView />}
-      {currentView === 'search' && <SearchView />}
-      {currentView === 'post' && <PostView />}
-      {currentView === 'profile' && <ProfileView />}
-      <NavBar />
-    </div>
-  );
-};
-
-export default App;
+              <p className="text-sm text-gray-500">Tap to
