@@ -741,4 +741,104 @@ const App = () => {
           ) : (
             <div className="flex flex-col items-center justify-center h-64">
               <Camera size={48} className="text-gray-400 mb-2" />
-              <p className="text-sm text-gray-500">Tap to
+              <p className="text-sm text-gray-500">Tap to select photos</p>
+              <p className="text-xs text-gray-400 mt-1">You can select multiple</p>
+            </div>
+          )}
+          <input
+            type="file"
+            accept="image/*"
+            multiple
+            onChange={handleImageSelect}
+            className="hidden"
+          />
+        </label>
+        
+        <textarea
+          key="caption-input"
+          placeholder="What's happening?..."
+          value={newMoment.caption}
+          onChange={(e) => setNewMoment(prev => ({ ...prev, caption: e.target.value }))}
+          autoComplete="off"
+          className="w-full p-4 border border-gray-300 rounded-lg focus:outline-none focus:border-gray-400 resize-none"
+          rows="4"
+        />
+      </div>
+    </div>
+  );
+
+  const ProfileView = () => {
+    const currentUserProfile = users.find(u => u.id === supabase.user?.id);
+    const yourMoments = moments.filter(m => m.user_id === supabase.user?.id);
+    
+    return (
+      <div className="pb-20">
+        <div className="sticky top-0 bg-white border-b border-gray-200 p-4 z-10">
+          <h1 className="text-2xl font-light">Profile</h1>
+        </div>
+        
+        <div className="p-6">
+          <div className="mb-6">
+            <p className="text-xl font-medium">{currentUserProfile?.username || 'Loading...'}</p>
+            <p className="text-sm text-gray-600">{currentUserProfile?.email || supabase.user?.email}</p>
+          </div>
+          
+          <div className="flex gap-8 mb-6 text-center">
+            <div>
+              <p className="text-2xl font-light">{yourMoments.length}</p>
+              <p className="text-xs text-gray-600">Moments</p>
+            </div>
+            <div>
+              <p className="text-2xl font-light">{following.length}</p>
+              <p className="text-xs text-gray-600">Following</p>
+            </div>
+          </div>
+          
+          <div className="border-t border-gray-200 pt-4">
+            <p className="text-sm text-gray-600 mb-4">Your Moments</p>
+            {yourMoments.length === 0 ? (
+              <p className="text-center text-gray-400 py-8 text-sm">No moments shared yet</p>
+            ) : (
+              <div className="grid grid-cols-3 gap-2">
+                {yourMoments.map(moment => {
+                  let firstImageUrl;
+                  try {
+                    const parsed = JSON.parse(moment.image_url);
+                    firstImageUrl = Array.isArray(parsed) ? parsed[0] : parsed;
+                  } catch {
+                    firstImageUrl = moment.image_url;
+                  }
+                  
+                  return (
+                    <div key={moment.id} className="aspect-square bg-gray-50 rounded overflow-hidden">
+                      <img src={firstImageUrl} alt="" className="w-full h-full object-cover" />
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div className="max-w-md mx-auto bg-white min-h-screen">
+      {error && (
+        <div className="bg-red-50 text-red-600 p-3 text-sm text-center">
+          {error}
+        </div>
+      )}
+      
+      {currentView === 'feed' && <FeedView />}
+      {currentView === 'album' && <AlbumView />}
+      {currentView === 'search' && <SearchView />}
+      {currentView === 'post' && <PostView />}
+      {currentView === 'profile' && <ProfileView />}
+      <NavBar />
+    </div>
+  );
+};
+
+export default App;
