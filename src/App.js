@@ -138,29 +138,103 @@ class SupabaseClient {
 
 const supabase = new SupabaseClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// Memoized Search Input Component
-const SearchInput = memo(({ value, onChange }) => (
-  <input
-    type="text"
-    placeholder="Search username..."
-    value={value}
-    onChange={onChange}
-    autoComplete="off"
-    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-gray-400"
-  />
-));
+// Search View Component - OUTSIDE App
+const SearchViewComponent = ({ searchQuery, setSearchQuery, users, following, toggleFollow, supabaseUser }) => {
+  const filteredUsers = users.filter(u => 
+    u.id !== supabaseUser?.id &&
+    (u.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
+     u.email.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
 
-// Memoized Caption Textarea Component  
-const CaptionInput = memo(({ value, onChange }) => (
-  <textarea
-    placeholder="What's happening?..."
-    value={value}
-    onChange={onChange}
-    autoComplete="off"
-    className="w-full p-4 border border-gray-300 rounded-lg focus:outline-none focus:border-gray-400 resize-none"
-    rows="4"
-  />
-));
+  return (
+    <div className="pb-20">
+      <div className="sticky top-0 bg-white border-b border-gray-200 p-4 z-10">
+        <h1 className="text-2xl font-light mb-4">Find Friends</h1>
+        <input
+          type="text"
+          placeholder="Search username..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          autoComplete="off"
+          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-gray-400"
+        />
+      </div>
+      
+      <div className="divide-y divide-gray-100">
+        {filteredUsers.map(user => {
+          const isFollowing = following.some(f => f.following_id === user.id);
+          return (
+            <div key={user.id} className="flex items-center justify-between p-4">
+              <div>
+                <p className="font-medium text-sm">{user.username}</p>
+                <p className="text-xs text-gray-500">{user.email}</p>
+              </div>
+              <button
+                onClick={() => toggleFollow(user.id)}
+                className={`px-6 py-1.5 rounded-lg text-sm font-medium ${
+                  isFollowing 
+                    ? 'bg-gray-200 text-black' 
+                    : 'bg-black text-white'
+                }`}
+              >
+                {isFollowing ? 'Following' : 'Follow'}
+              </button>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
+// Post View Component - OUTSIDE App
+const PostViewComponent = ({ newMoment, setNewMoment, handlePostMoment, handleImageSelect, loading, setCurrentView }) => (
+  <div className="pb-20">
+    <div className="sticky top-0 bg-white border-b border-gray-200 p-4 z-10 flex items-center justify-between">
+      <button onClick={() => setCurrentView('feed')} className="text-gray-600">
+        <ArrowLeft size={24} />
+      </button>
+      <h1 className="text-xl font-light">Share a Moment</h1>
+      <button
+        onClick={handlePostMoment}
+        disabled={!newMoment.caption.trim() || !newMoment.image || loading}
+        className={`text-sm font-medium ${
+          newMoment.caption.trim() && newMoment.image && !loading ? 'text-black' : 'text-gray-300'
+        }`}
+      >
+        {loading ? 'Posting...' : 'Post'}
+      </button>
+    </div>
+    
+    <div className="p-4">
+      <label className="block bg-gray-50 rounded-lg p-8 mb-4 cursor-pointer hover:bg-gray-100">
+        {newMoment.preview ? (
+          <img src={newMoment.preview} alt="Preview" className="w-full h-64 object-cover rounded-lg" />
+        ) : (
+          <div className="flex flex-col items-center justify-center h-64">
+            <Camera size={48} className="text-gray-400 mb-2" />
+            <p className="text-sm text-gray-500">Tap to select photo</p>
+          </div>
+        )}
+        <input
+          type="file"
+          accept="image/*"
+          onChange={handleImageSelect}
+          className="hidden"
+        />
+      </label>
+      
+      <textarea
+        placeholder="What's happening?..."
+        value={newMoment.caption}
+        onChange={(e) => setNewMoment(prev => ({ ...prev, caption: e.target.value }))}
+        autoComplete="off"
+        className="w-full p-4 border border-gray-300 rounded-lg focus:outline-none focus:border-gray-400 resize-none"
+        rows="4"
+      />
+    </div>
+  </div>
+);
 
 const App = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(!!supabase.user);
