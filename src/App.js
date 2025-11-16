@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, memo } from 'react';
 import { Heart, MessageCircle, Send, Search, Home, PlusSquare, User, ArrowLeft, ChevronLeft, ChevronRight, Upload, LogOut, Camera } from 'lucide-react';
 
 // Supabase client setup
@@ -137,6 +137,30 @@ class SupabaseClient {
 }
 
 const supabase = new SupabaseClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// Memoized Search Input Component
+const SearchInput = memo(({ value, onChange }) => (
+  <input
+    type="text"
+    placeholder="Search username..."
+    value={value}
+    onChange={onChange}
+    autoComplete="off"
+    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-gray-400"
+  />
+));
+
+// Memoized Caption Textarea Component  
+const CaptionInput = memo(({ value, onChange }) => (
+  <textarea
+    placeholder="What's happening?..."
+    value={value}
+    onChange={onChange}
+    autoComplete="off"
+    className="w-full p-4 border border-gray-300 rounded-lg focus:outline-none focus:border-gray-400 resize-none"
+    rows="4"
+  />
+));
 
 const App = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(!!supabase.user);
@@ -545,13 +569,9 @@ const App = () => {
       <div className="pb-20">
         <div className="sticky top-0 bg-white border-b border-gray-200 p-4 z-10">
           <h1 className="text-2xl font-light mb-4">Find Friends</h1>
-          <input
-            type="text"
-            placeholder="Search username..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            autoComplete="off"
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-gray-400"
+          <SearchInput 
+            value={searchQuery} 
+            onChange={(e) => setSearchQuery(e.target.value)} 
           />
         </div>
         
@@ -619,13 +639,9 @@ const App = () => {
           />
         </label>
         
-        <textarea
-          placeholder="What's happening?..."
+        <CaptionInput
           value={newMoment.caption}
           onChange={(e) => setNewMoment(prev => ({ ...prev, caption: e.target.value }))}
-          autoComplete="off"
-          className="w-full p-4 border border-gray-300 rounded-lg focus:outline-none focus:border-gray-400 resize-none"
-          rows="4"
         />
       </div>
     </div>
