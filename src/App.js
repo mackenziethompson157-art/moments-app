@@ -146,8 +146,9 @@ const App = () => {
   const [following, setFollowing] = useState([]);
   const [selectedUserId, setSelectedUserId] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [newMoment, setNewMoment] = useState({ caption: '', image: null, preview: null });
+  const [newMoment, setNewMoment] = useState({ caption: '', images: [], previews: [] });
   const [currentMomentIndex, setCurrentMomentIndex] = useState(0);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -237,38 +238,43 @@ const App = () => {
   };
 
   const handleImageSelect = (e) => {
-    const file = e.target.files[0];
-    if (file) {
+    const files = Array.from(e.target.files);
+    if (files.length > 0) {
+      const previews = files.map(file => URL.createObjectURL(file));
       setNewMoment({
         ...newMoment,
-        image: file,
-        preview: URL.createObjectURL(file)
+        images: files,
+        previews: previews
       });
     }
   };
 
   const handlePostMoment = async () => {
-    if (!newMoment.caption.trim() || !newMoment.image) return;
+    if (!newMoment.caption.trim() || newMoment.images.length === 0) return;
 
     try {
       setLoading(true);
       
-      // Upload image
-      const fileName = `${Date.now()}_${newMoment.image.name}`;
-      await supabase.uploadFile('Moments', fileName, newMoment.image);
-      const imageUrl = supabase.getPublicUrl('Moments', fileName);
+      // Upload all images
+      const imageUrls = [];
+      for (const image of newMoment.images) {
+        const fileName = `${Date.now()}_${Math.random()}_${image.name}`;
+        await supabase.uploadFile('Moments', fileName, image);
+        const imageUrl = supabase.getPublicUrl('Moments', fileName);
+        imageUrls.push(imageUrl);
+      }
 
-      // Create moment
+      // Create moment with multiple image URLs (stored as JSON string)
       await supabase.insert('moments', {
         user_id: supabase.user.id,
-        image_url: imageUrl,
+        image_url: JSON.stringify(imageUrls), // Store array as JSON
         caption: newMoment.caption
       });
 
       // Reload moments
       await loadData();
       
-      setNewMoment({ caption: '', image: null, preview: null });
+      setNewMoment({ caption: '', images: [], previews: [] });
       setCurrentView('feed');
     } catch (err) {
       setError(err.message);
@@ -378,13 +384,15 @@ const App = () => {
     );
   }
 
-  // Get following users and their latest moments
+  // Get following users and ALL their moments for feed
   const followingUserIds = following.map(f => f.following_id);
-  const followingUsers = users.filter(u => followingUserIds.includes(u.id));
-  const latestMoments = followingUsers.map(user => {
-    const userMoments = moments.filter(m => m.user_id === user.id);
-    return userMoments.length > 0 ? { ...userMoments[0], user } : null;
-  }).filter(Boolean);
+  const feedMoments = moments
+    .filter(m => followingUserIds.includes(m.user_id))
+    .map(moment => {
+      const user = users.find(u => u.id === moment.user_id);
+      return { ...moment, user };
+    })
+    .filter(m => m.user);
 
   // Navigation Bar
   const NavBar = () => (
@@ -404,7 +412,7 @@ const App = () => {
     </div>
   );
 
-  // Feed View
+  // Feed View - Grid of ALL moments
   const FeedView = () => (
     <div className="pb-20">
       <div className="sticky top-0 bg-white border-b border-gray-200 p-4 z-10 flex justify-between items-center">
@@ -416,7 +424,7 @@ const App = () => {
       
       {loading ? (
         <div className="p-8 text-center text-gray-500">Loading...</div>
-      ) : latestMoments.length === 0 ? (
+      ) : feedMoments.length === 0 ? (
         <div className="p-8 text-center text-gray-500">
           <p className="mb-2">No moments yet</p>
           <p className="text-sm">Follow friends to see their moments</p>
@@ -424,27 +432,42 @@ const App = () => {
       ) : (
         <>
           <div className="grid grid-cols-2 gap-3 p-4">
-            {latestMoments.map(moment => (
-              <button
-                key={moment.id}
-                onClick={() => {
-                  setSelectedUserId(moment.user_id);
-                  setCurrentView('album');
-                  setCurrentMomentIndex(0);
-                }}
-                className="aspect-square bg-gray-50 rounded-2xl overflow-hidden hover:opacity-80 transition-opacity"
-              >
-                <div className="h-full flex flex-col">
-                  <div className="flex-1 overflow-hidden">
-                    <img src={moment.image_url} alt="" className="w-full h-full object-cover" />
+            {feedMoments.map(moment => {
+              // Parse image URLs (could be single or array)
+              let imageUrl;
+              try {
+                const parsed = JSON.parse(moment.image_url);
+                imageUrl = Array.isArray(parsed) ? parsed[0] : parsed;
+              } catch {
+                imageUrl = moment.image_url;
+              }
+              
+              return (
+                <button
+                  key={moment.id}
+                  onClick={() => {
+                    setSelectedUserId(moment.user_id);
+                    setCurrentView('album');
+                    // Find index of this moment in user's moments
+                    const userMoments = moments.filter(m => m.user_id === moment.user_id);
+                    const index = userMoments.findIndex(m => m.id === moment.id);
+                    setCurrentMomentIndex(index >= 0 ? index : 0);
+                    setCurrentImageIndex(0);
+                  }}
+                  className="aspect-square bg-gray-50 rounded-2xl overflow-hidden hover:opacity-80 transition-opacity"
+                >
+                  <div className="h-full flex flex-col">
+                    <div className="flex-1 overflow-hidden">
+                      <img src={imageUrl} alt="" className="w-full h-full object-cover" />
+                    </div>
+                    <div className="bg-white p-3 border-t border-gray-100">
+                      <p className="text-sm font-medium truncate">{moment.user.username}</p>
+                      <p className="text-xs text-gray-500">{new Date(moment.created_at).toLocaleDateString()}</p>
+                    </div>
                   </div>
-                  <div className="bg-white p-3 border-t border-gray-100">
-                    <p className="text-sm font-medium truncate">{moment.user.username}</p>
-                    <p className="text-xs text-gray-500">{new Date(moment.created_at).toLocaleDateString()}</p>
-                  </div>
-                </div>
-              </button>
-            ))}
+                </button>
+              );
+            })}
           </div>
           <div className="text-center py-6 text-sm text-gray-400">
             You're all caught up! ✨
@@ -454,76 +477,89 @@ const App = () => {
     </div>
   );
 
-  // Album View
+  // Album View - Scroll through user's moments and their images
   const AlbumView = () => {
     const userMoments = moments.filter(m => m.user_id === selectedUserId);
     const currentMoment = userMoments[currentMomentIndex];
     const momentUser = users.find(u => u.id === selectedUserId);
+    
+    // Parse image URLs for current moment
+    let imageUrls = [];
+    if (currentMoment) {
+      try {
+        const parsed = JSON.parse(currentMoment.image_url);
+        imageUrls = Array.isArray(parsed) ? parsed : [parsed];
+      } catch {
+        imageUrls = [currentMoment.image_url];
+      }
+    }
 
     return (
-      <div className="fixed inset-0 bg-white z-50">
+      <div className="fixed inset-0 bg-white z-50 overflow-y-auto">
         <div className="sticky top-0 bg-white border-b border-gray-200 p-4 z-10 flex items-center justify-between">
           <button onClick={() => setCurrentView('feed')} className="text-gray-600">
             <ArrowLeft size={24} />
           </button>
           <div className="text-center">
             <p className="text-sm font-medium">{momentUser?.username}</p>
-            <p className="text-xs text-gray-500">This week's moments</p>
+            <p className="text-xs text-gray-500">
+              {currentMomentIndex + 1} of {userMoments.length}
+            </p>
           </div>
           <div className="w-6"></div>
         </div>
 
-        <div className="relative h-[calc(100vh-140px)] flex items-center justify-center">
-          {currentMomentIndex > 0 && (
-            <button
-              onClick={() => setCurrentMomentIndex(currentMomentIndex - 1)}
-              className="absolute left-4 z-10 bg-white rounded-full p-2 shadow-lg"
-            >
-              <ChevronLeft size={24} />
-            </button>
-          )}
+        <div className="max-w-lg mx-auto">
+          {/* All images in current moment - vertical scroll */}
+          {imageUrls.map((imageUrl, imgIndex) => (
+            <div key={imgIndex} className="w-full">
+              <img src={imageUrl} alt="" className="w-full object-cover" />
+            </div>
+          ))}
           
-          {currentMomentIndex < userMoments.length - 1 && (
-            <button
-              onClick={() => setCurrentMomentIndex(currentMomentIndex + 1)}
-              className="absolute right-4 z-10 bg-white rounded-full p-2 shadow-lg"
-            >
-              <ChevronRight size={24} />
-            </button>
-          )}
-
-          <div className="w-full max-w-lg px-4">
-            <div className="bg-gray-50 rounded-2xl overflow-hidden">
-              <div className="aspect-square">
-                <img src={currentMoment?.image_url} alt="" className="w-full h-full object-cover" />
-              </div>
-              
-              <div className="bg-white p-6">
-                <div className="flex gap-4 mb-4">
-                  <button onClick={() => toggleLike(currentMoment?.id)} className="hover:opacity-70">
-                    <Heart size={24} />
-                  </button>
-                  <button className="hover:opacity-70">
-                    <MessageCircle size={24} />
-                  </button>
-                </div>
-                
-                <p className="text-base mb-2">{currentMoment?.caption}</p>
-                <p className="text-xs text-gray-500">{new Date(currentMoment?.created_at).toLocaleString()}</p>
-              </div>
+          {/* Caption and actions */}
+          <div className="p-6 bg-white">
+            <div className="flex gap-4 mb-4">
+              <button onClick={() => toggleLike(currentMoment?.id)} className="hover:opacity-70">
+                <Heart size={24} />
+              </button>
+              <button className="hover:opacity-70">
+                <MessageCircle size={24} />
+              </button>
             </div>
+            
+            <p className="text-base mb-2">{currentMoment?.caption}</p>
+            <p className="text-xs text-gray-500 mb-6">
+              {new Date(currentMoment?.created_at).toLocaleString()}
+            </p>
 
-            <div className="flex justify-center gap-2 mt-4">
-              {userMoments.map((_, index) => (
-                <button
-                  key={index}
-                  onClick={() => setCurrentMomentIndex(index)}
-                  className={`h-2 rounded-full transition-all ${
-                    index === currentMomentIndex ? 'w-6 bg-black' : 'w-2 bg-gray-300'
-                  }`}
-                />
-              ))}
-            </div>
+            {/* Navigation to other moments */}
+            {userMoments.length > 1 && (
+              <div className="flex gap-2 pt-4 border-t">
+                {currentMomentIndex > 0 && (
+                  <button
+                    onClick={() => {
+                      setCurrentMomentIndex(currentMomentIndex - 1);
+                      window.scrollTo(0, 0);
+                    }}
+                    className="flex-1 py-2 px-4 bg-gray-100 rounded-lg text-sm hover:bg-gray-200"
+                  >
+                    ← Previous
+                  </button>
+                )}
+                {currentMomentIndex < userMoments.length - 1 && (
+                  <button
+                    onClick={() => {
+                      setCurrentMomentIndex(currentMomentIndex + 1);
+                      window.scrollTo(0, 0);
+                    }}
+                    className="flex-1 py-2 px-4 bg-gray-100 rounded-lg text-sm hover:bg-gray-200"
+                  >
+                    Next →
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -590,9 +626,9 @@ const App = () => {
         <h1 className="text-xl font-light">Share a Moment</h1>
         <button
           onClick={handlePostMoment}
-          disabled={!newMoment.caption.trim() || !newMoment.image || loading}
+          disabled={!newMoment.caption.trim() || newMoment.images.length === 0 || loading}
           className={`text-sm font-medium ${
-            newMoment.caption.trim() && newMoment.image && !loading ? 'text-black' : 'text-gray-300'
+            newMoment.caption.trim() && newMoment.images.length > 0 && !loading ? 'text-black' : 'text-gray-300'
           }`}
         >
           {loading ? 'Posting...' : 'Post'}
@@ -601,17 +637,39 @@ const App = () => {
       
       <div className="p-4">
         <label className="block bg-gray-50 rounded-lg p-8 mb-4 cursor-pointer hover:bg-gray-100">
-          {newMoment.preview ? (
-            <img src={newMoment.preview} alt="Preview" className="w-full h-64 object-cover rounded-lg" />
+          {newMoment.previews.length > 0 ? (
+            <div className="space-y-2">
+              {newMoment.previews.map((preview, index) => (
+                <div key={index} className="relative">
+                  <img src={preview} alt={`Preview ${index + 1}`} className="w-full h-64 object-cover rounded-lg" />
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault();
+                      const newImages = newMoment.images.filter((_, i) => i !== index);
+                      const newPreviews = newMoment.previews.filter((_, i) => i !== index);
+                      setNewMoment({ ...newMoment, images: newImages, previews: newPreviews });
+                    }}
+                    className="absolute top-2 right-2 bg-white rounded-full p-2 shadow-lg hover:bg-gray-100"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
+              <p className="text-sm text-center text-gray-600 mt-4">
+                {newMoment.images.length} photo{newMoment.images.length !== 1 ? 's' : ''} selected
+              </p>
+            </div>
           ) : (
             <div className="flex flex-col items-center justify-center h-64">
               <Camera size={48} className="text-gray-400 mb-2" />
-              <p className="text-sm text-gray-500">Tap to select photo</p>
+              <p className="text-sm text-gray-500">Tap to select photos</p>
+              <p className="text-xs text-gray-400 mt-1">You can select multiple</p>
             </div>
           )}
           <input
             type="file"
             accept="image/*"
+            multiple
             onChange={handleImageSelect}
             className="hidden"
           />
@@ -664,11 +722,22 @@ const App = () => {
               <p className="text-center text-gray-400 py-8 text-sm">No moments shared yet</p>
             ) : (
               <div className="grid grid-cols-3 gap-2">
-                {yourMoments.map(moment => (
-                  <div key={moment.id} className="aspect-square bg-gray-50 rounded overflow-hidden">
-                    <img src={moment.image_url} alt="" className="w-full h-full object-cover" />
-                  </div>
-                ))}
+                {yourMoments.map(moment => {
+                  // Parse image URL(s)
+                  let firstImageUrl;
+                  try {
+                    const parsed = JSON.parse(moment.image_url);
+                    firstImageUrl = Array.isArray(parsed) ? parsed[0] : parsed;
+                  } catch {
+                    firstImageUrl = moment.image_url;
+                  }
+                  
+                  return (
+                    <div key={moment.id} className="aspect-square bg-gray-50 rounded overflow-hidden">
+                      <img src={firstImageUrl} alt="" className="w-full h-full object-cover" />
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
