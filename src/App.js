@@ -152,7 +152,7 @@ const App = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [likes, setLikes] = useState([]);
-  const [showComments, setShowComments] = useState(false);
+  const [showCommentsForMoment, setShowCommentsForMoment] = useState(null);
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState('');
 
@@ -552,7 +552,7 @@ const App = () => {
         <div className="sticky top-0 bg-white border-b border-gray-200 p-4 z-10 flex items-center justify-between">
           <button onClick={() => {
             setCurrentView('feed');
-            setShowComments(false);
+            setShowCommentsForMoment(null);
           }} className="text-gray-600">
             <ArrowLeft size={24} />
           </button>
@@ -588,7 +588,14 @@ const App = () => {
                 {likeCount > 0 && <span className="text-sm">{likeCount}</span>}
               </button>
               <button 
-                onClick={() => setShowComments(!showComments)} 
+                onClick={() => {
+                  if (showCommentsForMoment === currentMoment?.id) {
+                    setShowCommentsForMoment(null);
+                  } else {
+                    setShowCommentsForMoment(currentMoment?.id);
+                    loadComments(currentMoment?.id);
+                  }
+                }} 
                 className="hover:opacity-70 flex items-center gap-2"
               >
                 <MessageCircle size={24} />
@@ -605,7 +612,7 @@ const App = () => {
             </p>
 
             {/* Comments section */}
-            {showComments && (
+            {showCommentsForMoment === currentMoment?.id && (
               <div className="border-t pt-4 mt-4">
                 <h3 className="font-medium mb-4">Comments</h3>
                 
@@ -653,7 +660,7 @@ const App = () => {
                   <button
                     onClick={() => {
                       setCurrentMomentIndex(currentMomentIndex - 1);
-                      setShowComments(false);
+                      setShowCommentsForMoment(null);
                       window.scrollTo(0, 0);
                     }}
                     className="flex-1 py-2 px-4 bg-gray-100 rounded-lg text-sm hover:bg-gray-200"
@@ -665,7 +672,7 @@ const App = () => {
                   <button
                     onClick={() => {
                       setCurrentMomentIndex(currentMomentIndex + 1);
-                      setShowComments(false);
+                      setShowCommentsForMoment(null);
                       window.scrollTo(0, 0);
                     }}
                     className="flex-1 py-2 px-4 bg-gray-100 rounded-lg text-sm hover:bg-gray-200"
