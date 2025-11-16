@@ -540,16 +540,23 @@ const App = () => {
     // Count likes for this moment
     const likeCount = currentMoment ? likes.filter(l => l.moment_id === currentMoment.id).length : 0;
 
-    // Load comments when view opens
+    // Load comments when view opens or moment changes
     React.useEffect(() => {
       if (currentMoment) {
         loadComments(currentMoment.id);
       }
     }, [currentMoment?.id]);
 
+    const handleAddComment = () => {
+      if (newComment.trim()) {
+        addComment(currentMoment?.id);
+      }
+    };
+
     return (
-      <div className="fixed inset-0 bg-white z-50 overflow-y-auto">
-        <div className="sticky top-0 bg-white border-b border-gray-200 p-4 z-10 flex items-center justify-between">
+      <div className="fixed inset-0 bg-white z-50 flex flex-col">
+        {/* Header - fixed */}
+        <div className="bg-white border-b border-gray-200 p-4 flex items-center justify-between flex-shrink-0">
           <button onClick={() => {
             setCurrentView('feed');
             setShowCommentsForMoment(null);
@@ -565,123 +572,126 @@ const App = () => {
           <div className="w-6"></div>
         </div>
 
-        <div className="max-w-lg mx-auto">
-          {/* All images in current moment - vertical scroll */}
-          {imageUrls.map((imageUrl, imgIndex) => (
-            <div key={imgIndex} className="w-full">
-              <img src={imageUrl} alt="" className="w-full object-cover" />
-            </div>
-          ))}
-          
-          {/* Caption and actions */}
-          <div className="p-6 bg-white">
-            <div className="flex gap-4 mb-4">
-              <button 
-                onClick={() => toggleLike(currentMoment?.id)} 
-                className="hover:opacity-70 flex items-center gap-2"
-              >
-                <Heart 
-                  size={24} 
-                  fill={isLiked ? 'black' : 'none'} 
-                  stroke={isLiked ? 'black' : 'currentColor'} 
-                />
-                {likeCount > 0 && <span className="text-sm">{likeCount}</span>}
-              </button>
-              <button 
-                onClick={() => {
-                  if (showCommentsForMoment === currentMoment?.id) {
-                    setShowCommentsForMoment(null);
-                  } else {
-                    setShowCommentsForMoment(currentMoment?.id);
-                    loadComments(currentMoment?.id);
-                  }
-                }} 
-                className="hover:opacity-70 flex items-center gap-2"
-              >
-                <MessageCircle size={24} />
-                {comments.length > 0 && <span className="text-sm">{comments.length}</span>}
-              </button>
-            </div>
+        {/* Scrollable content */}
+        <div className="flex-1 overflow-y-auto">
+          <div className="max-w-lg mx-auto">
+            {/* All images in current moment - vertical scroll */}
+            {imageUrls.map((imageUrl, imgIndex) => (
+              <div key={imgIndex} className="w-full">
+                <img src={imageUrl} alt="" className="w-full object-cover" />
+              </div>
+            ))}
             
-            <p className="text-base mb-2">
-              <span className="font-medium mr-2">{momentUser?.username}</span>
-              {currentMoment?.caption}
-            </p>
-            <p className="text-xs text-gray-500 mb-6">
-              {new Date(currentMoment?.created_at).toLocaleString()}
-            </p>
+            {/* Caption and actions */}
+            <div className="p-6 bg-white">
+              <div className="flex gap-4 mb-4">
+                <button 
+                  onClick={() => toggleLike(currentMoment?.id)} 
+                  className="hover:opacity-70 flex items-center gap-2"
+                >
+                  <Heart 
+                    size={24} 
+                    fill={isLiked ? 'black' : 'none'} 
+                    stroke={isLiked ? 'black' : 'currentColor'} 
+                  />
+                  {likeCount > 0 && <span className="text-sm">{likeCount}</span>}
+                </button>
+                <button 
+                  onClick={() => {
+                    if (showCommentsForMoment === currentMoment?.id) {
+                      setShowCommentsForMoment(null);
+                    } else {
+                      setShowCommentsForMoment(currentMoment?.id);
+                      loadComments(currentMoment?.id);
+                    }
+                  }} 
+                  className="hover:opacity-70 flex items-center gap-2"
+                >
+                  <MessageCircle size={24} />
+                  {comments.length > 0 && <span className="text-sm">{comments.length}</span>}
+                </button>
+              </div>
+              
+              <p className="text-base mb-2">
+                <span className="font-medium mr-2">{momentUser?.username}</span>
+                {currentMoment?.caption}
+              </p>
+              <p className="text-xs text-gray-500 mb-6">
+                {new Date(currentMoment?.created_at).toLocaleString()}
+              </p>
 
-            {/* Comments section */}
-            {showCommentsForMoment === currentMoment?.id && (
-              <div className="border-t pt-4 mt-4">
-                <h3 className="font-medium mb-4">Comments</h3>
-                
-                {/* Comments list */}
-                <div className="space-y-3 mb-4 max-h-60 overflow-y-auto">
-                  {comments.map(comment => {
-                    const commentUser = users.find(u => u.id === comment.user_id);
-                    return (
-                      <div key={comment.id} className="text-sm">
-                        <span className="font-medium mr-2">{commentUser?.username || 'Unknown'}</span>
-                        <span>{comment.text}</span>
-                      </div>
-                    );
-                  })}
-                  {comments.length === 0 && (
-                    <p className="text-sm text-gray-400 text-center py-4">No comments yet</p>
+              {/* Comments section */}
+              {showCommentsForMoment === currentMoment?.id && (
+                <div className="border-t pt-4 mt-4">
+                  <h3 className="font-medium mb-4">Comments</h3>
+                  
+                  {/* Comments list */}
+                  <div className="space-y-3 mb-4 max-h-60 overflow-y-auto">
+                    {comments.map(comment => {
+                      const commentUser = users.find(u => u.id === comment.user_id);
+                      return (
+                        <div key={comment.id} className="text-sm">
+                          <span className="font-medium mr-2">{commentUser?.username || 'Unknown'}</span>
+                          <span>{comment.text}</span>
+                        </div>
+                      );
+                    })}
+                    {comments.length === 0 && (
+                      <p className="text-sm text-gray-400 text-center py-4">No comments yet</p>
+                    )}
+                  </div>
+
+                  {/* Add comment - using onBlur to work around focus issue */}
+                  <div className="space-y-2">
+                    <textarea
+                      key={`comment-${currentMoment?.id}`}
+                      placeholder="Add a comment... (type then click Post)"
+                      value={newComment}
+                      onChange={(e) => setNewComment(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-gray-400 resize-none"
+                      rows="2"
+                    />
+                    <button
+                      onClick={handleAddComment}
+                      disabled={!newComment.trim()}
+                      className="w-full py-2 bg-black text-white rounded-lg disabled:opacity-30 hover:bg-gray-800"
+                    >
+                      Post Comment
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Navigation to other moments */}
+              {userMoments.length > 1 && (
+                <div className="flex gap-2 pt-4 border-t mt-4">
+                  {currentMomentIndex > 0 && (
+                    <button
+                      onClick={() => {
+                        setCurrentMomentIndex(currentMomentIndex - 1);
+                        setShowCommentsForMoment(null);
+                        window.scrollTo(0, 0);
+                      }}
+                      className="flex-1 py-2 px-4 bg-gray-100 rounded-lg text-sm hover:bg-gray-200"
+                    >
+                      ← Previous
+                    </button>
+                  )}
+                  {currentMomentIndex < userMoments.length - 1 && (
+                    <button
+                      onClick={() => {
+                        setCurrentMomentIndex(currentMomentIndex + 1);
+                        setShowCommentsForMoment(null);
+                        window.scrollTo(0, 0);
+                      }}
+                      className="flex-1 py-2 px-4 bg-gray-100 rounded-lg text-sm hover:bg-gray-200"
+                    >
+                      Next →
+                    </button>
                   )}
                 </div>
-
-                {/* Add comment */}
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    placeholder="Add a comment..."
-                    value={newComment}
-                    onChange={(e) => setNewComment(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && addComment(currentMoment?.id)}
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-gray-400"
-                  />
-                  <button
-                    onClick={() => addComment(currentMoment?.id)}
-                    disabled={!newComment.trim()}
-                    className="px-4 py-2 bg-black text-white rounded-lg disabled:opacity-30 hover:bg-gray-800"
-                  >
-                    Post
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Navigation to other moments */}
-            {userMoments.length > 1 && (
-              <div className="flex gap-2 pt-4 border-t mt-4">
-                {currentMomentIndex > 0 && (
-                  <button
-                    onClick={() => {
-                      setCurrentMomentIndex(currentMomentIndex - 1);
-                      setShowCommentsForMoment(null);
-                      window.scrollTo(0, 0);
-                    }}
-                    className="flex-1 py-2 px-4 bg-gray-100 rounded-lg text-sm hover:bg-gray-200"
-                  >
-                    ← Previous
-                  </button>
-                )}
-                {currentMomentIndex < userMoments.length - 1 && (
-                  <button
-                    onClick={() => {
-                      setCurrentMomentIndex(currentMomentIndex + 1);
-                      setShowCommentsForMoment(null);
-                      window.scrollTo(0, 0);
-                    }}
-                    className="flex-1 py-2 px-4 bg-gray-100 rounded-lg text-sm hover:bg-gray-200"
-                  >
-                    Next →
-                  </button>
-                )}
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </div>
       </div>
