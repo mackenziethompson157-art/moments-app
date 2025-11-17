@@ -535,17 +535,54 @@ const App = () => {
           </div>
         </div>
 
-        <div className="max-w-lg mx-auto">
-          {imageUrls.map((imageUrl, imgIndex) => (
-            <img 
-              key={imgIndex}
-              src={imageUrl} 
-              alt="" 
-              className="w-full"
-            />
-          ))}
+        <div className="max-w-lg mx-auto" style={{ 
+          backgroundColor: '#fff',
+          position: 'relative',
+          isolation: 'isolate'
+        }}>
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 0,
+            width: '100%'
+          }}>
+            {imageUrls.map((imageUrl, imgIndex) => (
+              <div 
+                key={`img-${imgIndex}`}
+                style={{
+                  width: '100%',
+                  position: 'relative',
+                  lineHeight: 0,
+                  fontSize: 0
+                }}
+              >
+                <img 
+                  src={imageUrl} 
+                  alt="" 
+                  draggable="false"
+                  style={{
+                    width: '100%',
+                    height: 'auto',
+                    display: 'block',
+                    margin: 0,
+                    padding: 0,
+                    border: 'none',
+                    outline: 'none',
+                    verticalAlign: 'bottom',
+                    WebkitUserSelect: 'none',
+                    userSelect: 'none',
+                    pointerEvents: 'none'
+                  }}
+                />
+              </div>
+            ))}
+          </div>
           
-          <div className="p-6">
+          <div className="p-6" style={{ 
+            backgroundColor: '#fff',
+            position: 'relative',
+            zIndex: 1
+          }}>
             <div className="flex gap-4 mb-4">
               <button 
                 onClick={() => toggleLike(currentMoment?.id)} 
