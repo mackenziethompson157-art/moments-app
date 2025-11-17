@@ -473,6 +473,7 @@ const App = () => {
     const currentMoment = userMoments[currentMomentIndex];
     const momentUser = users.find(u => u.id === selectedUserId);
     const commentInputRef = useRef(null);
+    const [imagesLoaded, setImagesLoaded] = useState(false);
     
     let imageUrls = [];
     if (currentMoment) {
@@ -483,6 +484,31 @@ const App = () => {
         imageUrls = [currentMoment.image_url];
       }
     }
+
+    // Preload all images before showing them
+    React.useEffect(() => {
+      if (imageUrls.length === 0) return;
+      
+      setImagesLoaded(false);
+      let loadedCount = 0;
+      
+      imageUrls.forEach(url => {
+        const img = new Image();
+        img.onload = () => {
+          loadedCount++;
+          if (loadedCount === imageUrls.length) {
+            setImagesLoaded(true);
+          }
+        };
+        img.onerror = () => {
+          loadedCount++;
+          if (loadedCount === imageUrls.length) {
+            setImagesLoaded(true);
+          }
+        };
+        img.src = url;
+      });
+    }, [currentMoment?.id]);
 
     const isLiked = currentMoment && likes.some(l => 
       l.user_id === supabase.user.id && l.moment_id === currentMoment.id
@@ -514,6 +540,18 @@ const App = () => {
         }
       }
     };
+
+    // Show loading until images are ready
+    if (!imagesLoaded) {
+      return (
+        <div className="min-h-screen bg-black pb-20 flex items-center justify-center">
+          <div className="text-white text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
+            <p>Loading images...</p>
+          </div>
+        </div>
+      );
+    }
 
     return (
       <div className="min-h-screen bg-black pb-20">
