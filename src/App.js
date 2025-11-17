@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Heart, MessageCircle, Send, Search, Home, PlusSquare, User, ArrowLeft, ChevronLeft, ChevronRight, LogOut, Camera } from 'lucide-react';
 
 const SUPABASE_URL = 'https://emcnnvxvwmkmuudxbtqp.supabase.co';
@@ -99,6 +99,16 @@ class SupabaseClient {
 }
 
 const supabase = new SupabaseClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// Helper function to parse image URLs - memoized to prevent flicker
+const parseImageUrls = (imageUrl) => {
+  try {
+    const parsed = JSON.parse(imageUrl);
+    return Array.isArray(parsed) ? parsed : [parsed];
+  } catch {
+    return [imageUrl];
+  }
+};
 
 const App = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(!!supabase.user);
@@ -314,31 +324,33 @@ const App = () => {
     </div>
   );
 
-  const FeedView = () => (
-    <div className="pb-20">
-      <div className="sticky top-0 bg-white border-b border-gray-200 p-4 z-10 flex justify-between items-center">
-        <h1 className="text-2xl font-light">Moments</h1>
-        <button onClick={handleSignOut} className="text-gray-600 hover:text-black"><LogOut size={20} /></button>
-      </div>
-      {loading ? <div className="p-8 text-center text-gray-500">Loading...</div> :
-       feedMoments.length === 0 ? (
-        <div className="p-8 text-center text-gray-500">
-          <p className="mb-2">No moments yet</p>
-          <p className="text-sm">Follow friends to see their moments</p>
+  const FeedView = () => {
+    // Memoize processed moments to prevent recalculation on every render
+    const processedMoments = useMemo(() => {
+      return feedMoments.map(moment => ({
+        ...moment,
+        firstImageUrl: parseImageUrls(moment.image_url)[0]
+      }));
+    }, [feedMoments]);
+
+    return (
+      <div className="pb-20">
+        <div className="sticky top-0 bg-white border-b border-gray-200 p-4 z-10 flex justify-between items-center">
+          <h1 className="text-2xl font-light">Moments</h1>
+          <button onClick={handleSignOut} className="text-gray-600 hover:text-black"><LogOut size={20} /></button>
         </div>
-      ) : (
-        <>
-          <div className="grid grid-cols-2 gap-3 p-4">
-            {feedMoments.map(moment => {
-              let imageUrl;
-              try {
-                const parsed = JSON.parse(moment.image_url);
-                imageUrl = Array.isArray(parsed) ? parsed[0] : parsed;
-              } catch {
-                imageUrl = moment.image_url;
-              }
-              return (
-                <button key={moment.id}
+        {loading ? <div className="p-8 text-center text-gray-500">Loading...</div> :
+         processedMoments.length === 0 ? (
+          <div className="p-8 text-center text-gray-500">
+            <p className="mb-2">No moments yet</p>
+            <p className="text-sm">Follow friends to see their moments</p>
+          </div>
+        ) : (
+          <>
+            <div className="grid grid-cols-2 gap-3 p-4">
+              {processedMoments.map(moment => (
+                <button 
+                  key={moment.id}
                   onClick={() => {
                     setSelectedUserId(moment.user_id);
                     setCurrentView('album');
@@ -349,7 +361,12 @@ const App = () => {
                   className="aspect-square bg-gray-50 rounded-2xl overflow-hidden hover:opacity-80 transition-opacity">
                   <div className="h-full flex flex-col">
                     <div className="flex-1 overflow-hidden">
-                      <img src={imageUrl} alt="" className="w-full h-full object-cover" />
+                      <img 
+                        src={moment.firstImageUrl} 
+                        alt="" 
+                        className="w-full h-full object-cover"
+                        loading="lazy"
+                      />
                     </div>
                     <div className="bg-white p-3 border-t border-gray-100">
                       <p className="text-sm font-medium truncate">{moment.user.username}</p>
@@ -357,33 +374,31 @@ const App = () => {
                     </div>
                   </div>
                 </button>
-              );
-            })}
-          </div>
-          <div className="text-center py-6 text-sm text-gray-400">You're all caught up! ✨</div>
-        </>
-      )}
-    </div>
-  );
+              ))}
+            </div>
+            <div className="text-center py-6 text-sm text-gray-400">You're all caught up! ✨</div>
+          </>
+        )}
+      </div>
+    );
+  };
 
   const AlbumView = () => {
     const userMoments = moments.filter(m => m.user_id === selectedUserId);
     const currentMoment = userMoments[currentMomentIndex];
     const momentUser = users.find(u => u.id === selectedUserId);
     const commentInputRef = useRef(null);
-    let imageUrls = [];
-    if (currentMoment) {
-      try {
-        const parsed = JSON.parse(currentMoment.image_url);
-        imageUrls = Array.isArray(parsed) ? parsed : [parsed];
-      } catch {
-        imageUrls = [currentMoment.image_url];
-      }
-    }
+    
+    // Memoize image URLs to prevent flickering
+    const imageUrls = useMemo(() => {
+      if (!currentMoment) return [];
+      return parseImageUrls(currentMoment.image_url);
+    }, [currentMoment?.id, currentMoment?.image_url]);
+    
     const isLiked = currentMoment && likes.some(l => l.user_id === supabase.user.id && l.moment_id === currentMoment.id);
     const likeCount = currentMoment ? likes.filter(l => l.moment_id === currentMoment.id).length : 0;
 
-    React.useEffect(() => {
+    useEffect(() => {
       if (currentMoment) loadComments(currentMoment.id);
     }, [currentMoment?.id]);
 
@@ -416,27 +431,18 @@ const App = () => {
             <div className="w-6"></div>
           </div>
         </div>
-        <div className="max-w-lg mx-auto" style={{
-          backgroundColor: '#fff',
-          WebkitOverflowScrolling: 'touch',
-          transform: 'translateZ(0)',
-          backfaceVisibility: 'hidden',
-          perspective: 1000
-        }}>
+        <div className="max-w-lg mx-auto">
           {imageUrls.map((imageUrl, imgIndex) => (
-            <div key={`moment-${currentMoment?.id}-img-${imgIndex}`} style={{ width: '100%', overflow: 'hidden' }}>
-              <img src={imageUrl} alt="" style={{
-                width: '100%',
-                height: 'auto',
-                display: 'block',
-                transform: 'translateZ(0)',
-                backfaceVisibility: 'hidden',
-                WebkitBackfaceVisibility: 'hidden',
-                willChange: 'transform'
-              }} />
+            <div key={`${currentMoment?.id}-${imgIndex}`} className="w-full">
+              <img 
+                src={imageUrl} 
+                alt="" 
+                className="w-full h-auto block"
+                loading="lazy"
+              />
             </div>
           ))}
-          <div className="p-6" style={{ transform: 'translateZ(0)' }}>
+          <div className="p-6">
             <div className="flex gap-4 mb-4">
               <button onClick={() => toggleLike(currentMoment?.id)} className="flex items-center gap-2 hover:opacity-70">
                 <Heart size={24} fill={isLiked ? 'black' : 'none'} stroke="black" />
@@ -468,8 +474,7 @@ const App = () => {
               </div>
               <div className="space-y-3">
                 <div ref={commentInputRef} contentEditable suppressContentEditableWarning
-                  className="w-full px-4 py-3 border
-                    -2 border-gray-300 rounded-lg focus:outline-none focus:border-black min-h-[80px]" />
+                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-black min-h-[80px]" />
                 <button onClick={handleAddCommentFromRef}
                   className="w-full py-3 bg-black text-white rounded-lg hover:bg-gray-800 font-medium">
                   Post Comment
@@ -571,6 +576,15 @@ const App = () => {
   const ProfileView = () => {
     const currentUserProfile = users.find(u => u.id === supabase.user?.id);
     const yourMoments = moments.filter(m => m.user_id === supabase.user?.id);
+    
+    // Memoize processed profile moments
+    const processedProfileMoments = useMemo(() => {
+      return yourMoments.map(moment => ({
+        ...moment,
+        firstImageUrl: parseImageUrls(moment.image_url)[0]
+      }));
+    }, [yourMoments]);
+
     return (
       <div className="pb-20">
         <div className="sticky top-0 bg-white border-b border-gray-200 p-4 z-10"><h1 className="text-2xl font-light">Profile</h1></div>
@@ -585,15 +599,18 @@ const App = () => {
           </div>
           <div className="border-t border-gray-200 pt-4">
             <p className="text-sm text-gray-600 mb-4">Your Moments</p>
-            {yourMoments.length === 0 ? <p className="text-center text-gray-400 py-8 text-sm">No moments shared yet</p> : (
+            {processedProfileMoments.length === 0 ? <p className="text-center text-gray-400 py-8 text-sm">No moments shared yet</p> : (
               <div className="grid grid-cols-3 gap-2">
-                {yourMoments.map(moment => {
-                  let firstImageUrl;
-                  try { const parsed = JSON.parse(moment.image_url); firstImageUrl = Array.isArray(parsed) ? parsed[0] : parsed; } 
-                  catch { firstImageUrl = moment.image_url; }
-                  return (<div key={moment.id} className="aspect-square bg-gray-50 rounded overflow-hidden">
-                    <img src={firstImageUrl} alt="" className="w-full h-full object-cover" /></div>);
-                })}
+                {processedProfileMoments.map(moment => (
+                  <div key={moment.id} className="aspect-square bg-gray-50 rounded overflow-hidden">
+                    <img 
+                      src={moment.firstImageUrl} 
+                      alt="" 
+                      className="w-full h-full object-cover"
+                      loading="lazy"
+                    />
+                  </div>
+                ))}
               </div>
             )}
           </div>
