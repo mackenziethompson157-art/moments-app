@@ -537,20 +537,15 @@ const App = () => {
 
         <div className="max-w-lg mx-auto bg-black">
           {imageUrls.map((imageUrl, imgIndex) => (
-            <div key={imgIndex} className="w-full relative" style={{ minHeight: '400px' }}>
+            <div key={`${currentMoment?.id}-${imgIndex}`} className="w-full">
               <img 
                 src={imageUrl} 
                 alt={`Photo ${imgIndex + 1}`} 
-                className="w-full h-auto"
-                loading="eager"
-                onLoad={(e) => {
-                  e.currentTarget.parentElement.style.minHeight = 'auto';
-                }}
+                className="w-full block"
                 style={{ 
                   display: 'block',
                   width: '100%',
-                  height: 'auto',
-                  objectFit: 'contain'
+                  height: 'auto'
                 }}
               />
             </div>
