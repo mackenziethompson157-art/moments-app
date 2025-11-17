@@ -3,7 +3,67 @@ const AlbumView = () => {
     const currentMoment = userMoments[currentMomentIndex];
     const momentUser = users.find(u => u.id === selectedUserId);
     const commentInputRef = useRef(null);
-    const [allimport React, { useState, useEffect, useRef } from 'react';
+    
+    let imageUrls = [];
+    if (currentMoment) {
+      try {
+        const parsed = JSON.parse(currentMoment.image_url);
+        imageUrls = Array.isArray(parsed) ? parsed : [parsed];
+      } catch {
+        imageUrls = [currentMoment.image_url];
+      }
+    }
+
+    const isLiked = currentMoment && likes.some(l => 
+      l.user_id === supabase.user.id && l.moment_id === currentMoment.id
+    );
+    
+    const likeCount = currentMoment ? likes.filter(l => l.moment_id === currentMoment.id).length : 0;
+
+    React.useEffect(() => {
+      if (currentMoment) {
+        loadComments(currentMoment.id);
+      }
+    }, [currentMoment?.id]);
+
+    const handleAddCommentFromRef = async () => {
+      const commentText = commentInputRef.current?.textContent || '';
+      if (commentText.trim() && currentMoment) {
+        try {
+          await supabase.insert('comments', {
+            moment_id: currentMoment.id,
+            user_id: supabase.user.id,
+            text: commentText.trim()
+          });
+          await loadComments(currentMoment.id);
+          if (commentInputRef.current) {
+            commentInputRef.current.textContent = '';
+          }
+        } catch (err) {
+          setError(err.message);
+        }
+      }
+    };
+
+    return (
+      <div className="min-h-screen bg-white pb-20">
+        <div className="sticky top-0 bg-white border-b border-gray-200 p-4 z-10">
+          <div className="flex items-center justify-between max-w-lg mx-auto">
+            <button 
+              onClick={() => setCurrentView('feed')} 
+              className="text-gray-600"
+            >
+              <ArrowLeft size={24} />
+            </button>
+            <div className="text-center">
+              <p className="text-sm font-medium">{momentUser?.username}</p>
+              <p className="text-xs text-gray-500">
+                {currentMomentIndex + 1} of {userMoments.length}
+              </p>
+            </div>
+            <div className="w-6"></div>
+          </div>
+        </div>import React, { useState, useEffect, useRef } from 'react';
 import { Heart, MessageCircle, Send, Search, Home, PlusSquare, User, ArrowLeft, ChevronLeft, ChevronRight, LogOut, Camera } from 'lucide-react';
 
 // Supabase client setup
