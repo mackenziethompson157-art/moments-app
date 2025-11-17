@@ -564,14 +564,15 @@ const App = () => {
               >
                 <Heart 
                   size={24} 
-                  fill={isLiked ? 'black' : 'none'} 
-                  stroke="currentColor"
+                  fill={isLiked ? 'white' : 'none'} 
+                  stroke="white"
+                  className="text-white"
                 />
-                {likeCount > 0 && <span className="text-sm">{likeCount}</span>}
+                {likeCount > 0 && <span className="text-sm text-white">{likeCount}</span>}
               </button>
               <button className="flex items-center gap-2 hover:opacity-70">
-                <MessageCircle size={24} />
-                {comments.length > 0 && <span className="text-sm">{comments.length}</span>}
+                <MessageCircle size={24} stroke="white" className="text-white" />
+                {comments.length > 0 && <span className="text-sm text-white">{comments.length}</span>}
               </button>
             </div>
             
