@@ -516,18 +516,18 @@ const App = () => {
     };
 
     return (
-      <div className="min-h-screen bg-white pb-20">
-        <div className="sticky top-0 bg-white border-b border-gray-200 p-4 z-10">
+      <div className="min-h-screen bg-black pb-20">
+        <div className="sticky top-0 bg-black border-b border-gray-800 p-4 z-10">
           <div className="flex items-center justify-between max-w-lg mx-auto">
             <button 
               onClick={() => setCurrentView('feed')} 
-              className="text-gray-600"
+              className="text-white"
             >
               <ArrowLeft size={24} />
             </button>
             <div className="text-center">
-              <p className="text-sm font-medium">{momentUser?.username}</p>
-              <p className="text-xs text-gray-500">
+              <p className="text-sm font-medium text-white">{momentUser?.username}</p>
+              <p className="text-xs text-gray-400">
                 {currentMomentIndex + 1} of {userMoments.length}
               </p>
             </div>
@@ -535,23 +535,26 @@ const App = () => {
           </div>
         </div>
 
-        <div className="max-w-lg mx-auto bg-black">
+        <div className="max-w-lg mx-auto">
           {imageUrls.map((imageUrl, imgIndex) => (
-            <div key={`${currentMoment?.id}-${imgIndex}`} className="w-full">
+            <div key={`${currentMoment?.id}-${imgIndex}`} style={{ width: '100%', backgroundColor: '#000' }}>
               <img 
                 src={imageUrl} 
                 alt={`Photo ${imgIndex + 1}`} 
-                className="w-full block"
                 style={{ 
                   display: 'block',
                   width: '100%',
-                  height: 'auto'
+                  height: 'auto',
+                  margin: 0,
+                  padding: 0,
+                  border: 0,
+                  verticalAlign: 'top'
                 }}
               />
             </div>
           ))}
           
-          <div className="p-6">
+          <div className="p-6 bg-black">
             <div className="flex gap-4 mb-4">
               <button 
                 onClick={() => toggleLike(currentMoment?.id)} 
