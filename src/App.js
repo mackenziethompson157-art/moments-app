@@ -1,4 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react';
+const AlbumView = () => {
+    const userMoments = moments.filter(m => m.user_id === selectedUserId);
+    const currentMoment = userMoments[currentMomentIndex];
+    const momentUser = users.find(u => u.id === selectedUserId);
+    const commentInputRef = useRef(null);
+    const [allimport React, { useState, useEffect, useRef } from 'react';
 import { Heart, MessageCircle, Send, Search, Home, PlusSquare, User, ArrowLeft, ChevronLeft, ChevronRight, LogOut, Camera } from 'lucide-react';
 
 // Supabase client setup
@@ -538,50 +543,40 @@ const App = () => {
         <div className="max-w-lg mx-auto" style={{ 
           backgroundColor: '#fff',
           position: 'relative',
-          isolation: 'isolate'
+          WebkitOverflowScrolling: 'touch',
+          transform: 'translateZ(0)',
+          backfaceVisibility: 'hidden',
+          perspective: 1000
         }}>
-          <div style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 0,
-            width: '100%'
-          }}>
-            {imageUrls.map((imageUrl, imgIndex) => (
-              <div 
-                key={`img-${imgIndex}`}
+          {imageUrls.map((imageUrl, imgIndex) => (
+            <div 
+              key={`moment-${currentMoment?.id}-img-${imgIndex}`}
+              style={{
+                width: '100%',
+                position: 'relative',
+                overflow: 'hidden'
+              }}
+            >
+              <img 
+                src={imageUrl} 
+                alt="" 
                 style={{
                   width: '100%',
-                  position: 'relative',
-                  lineHeight: 0,
-                  fontSize: 0
+                  height: 'auto',
+                  display: 'block',
+                  transform: 'translateZ(0)',
+                  backfaceVisibility: 'hidden',
+                  WebkitBackfaceVisibility: 'hidden',
+                  willChange: 'transform',
+                  imageRendering: 'crisp-edges'
                 }}
-              >
-                <img 
-                  src={imageUrl} 
-                  alt="" 
-                  draggable="false"
-                  style={{
-                    width: '100%',
-                    height: 'auto',
-                    display: 'block',
-                    margin: 0,
-                    padding: 0,
-                    border: 'none',
-                    outline: 'none',
-                    verticalAlign: 'bottom',
-                    WebkitUserSelect: 'none',
-                    userSelect: 'none',
-                    pointerEvents: 'none'
-                  }}
-                />
-              </div>
-            ))}
-          </div>
+              />
+            </div>
+          ))}
           
           <div className="p-6" style={{ 
             backgroundColor: '#fff',
-            position: 'relative',
-            zIndex: 1
+            transform: 'translateZ(0)'
           }}>
             <div className="flex gap-4 mb-4">
               <button 
