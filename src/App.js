@@ -469,3 +469,150 @@ const App = () => {
               <div className="space-y-3">
                 <div ref={commentInputRef} contentEditable suppressContentEditableWarning
                   className="w-full px-4 py-3 border
+                    -2 border-gray-300 rounded-lg focus:outline-none focus:border-black min-h-[80px]" />
+                <button onClick={handleAddCommentFromRef}
+                  className="w-full py-3 bg-black text-white rounded-lg hover:bg-gray-800 font-medium">
+                  Post Comment
+                </button>
+              </div>
+            </div>
+            {userMoments.length > 1 && (
+              <div className="flex gap-3 pt-6 border-t mt-8">
+                {currentMomentIndex > 0 && (
+                  <button onClick={() => { setCurrentMomentIndex(currentMomentIndex - 1); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                    className="flex-1 py-3 px-4 bg-gray-100 rounded-lg hover:bg-gray-200 font-medium">← Previous</button>
+                )}
+                {currentMomentIndex < userMoments.length - 1 && (
+                  <button onClick={() => { setCurrentMomentIndex(currentMomentIndex + 1); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                    className="flex-1 py-3 px-4 bg-gray-100 rounded-lg hover:bg-gray-200 font-medium">Next →</button>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const SearchView = () => {
+    const filteredUsers = users.filter(u => u.id !== supabase.user.id &&
+      (u.username.toLowerCase().includes(searchQuery.toLowerCase()) || u.email.toLowerCase().includes(searchQuery.toLowerCase())));
+    return (
+      <div className="pb-20">
+        <div className="sticky top-0 bg-white border-b border-gray-200 p-4 z-10">
+          <h1 className="text-2xl font-light mb-4">Find Friends</h1>
+          <input key="search-input" type="text" placeholder="Search username..." value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)} autoComplete="off"
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-gray-400" />
+        </div>
+        <div className="divide-y divide-gray-100">
+          {filteredUsers.map(user => {
+            const isFollowing = following.some(f => f.following_id === user.id);
+            return (
+              <div key={user.id} className="flex items-center justify-between p-4">
+                <div>
+                  <p className="font-medium text-sm">{user.username}</p>
+                  <p className="text-xs text-gray-500">{user.email}</p>
+                </div>
+                <button onClick={() => toggleFollow(user.id)}
+                  className={`px-6 py-1.5 rounded-lg text-sm font-medium ${isFollowing ? 'bg-gray-200 text-black' : 'bg-black text-white'}`}>
+                  {isFollowing ? 'Following' : 'Follow'}
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
+  const PostView = () => (
+    <div className="pb-20">
+      <div className="sticky top-0 bg-white border-b border-gray-200 p-4 z-10 flex items-center justify-between">
+        <button onClick={() => setCurrentView('feed')} className="text-gray-600"><ArrowLeft size={24} /></button>
+        <h1 className="text-xl font-light">Share a Moment</h1>
+        <button onClick={handlePostMoment} disabled={!newMoment.caption.trim() || newMoment.images.length === 0 || loading}
+          className={`text-sm font-medium ${newMoment.caption.trim() && newMoment.images.length > 0 && !loading ? 'text-black' : 'text-gray-300'}`}>
+          {loading ? 'Posting...' : 'Post'}
+        </button>
+      </div>
+      <div className="p-4">
+        <label className="block bg-gray-50 rounded-lg p-8 mb-4 cursor-pointer hover:bg-gray-100">
+          {newMoment.previews.length > 0 ? (
+            <div className="space-y-2">
+              {newMoment.previews.map((preview, index) => (
+                <div key={index} className="relative">
+                  <img src={preview} alt={`Preview ${index + 1}`} className="w-full h-64 object-cover rounded-lg" />
+                  <button onClick={(e) => { e.preventDefault();
+                      const newImages = newMoment.images.filter((_, i) => i !== index);
+                      const newPreviews = newMoment.previews.filter((_, i) => i !== index);
+                      setNewMoment({ ...newMoment, images: newImages, previews: newPreviews }); }}
+                    className="absolute top-2 right-2 bg-white rounded-full p-2 shadow-lg hover:bg-gray-100">✕</button>
+                </div>
+              ))}
+              <p className="text-sm text-center text-gray-600 mt-4">{newMoment.images.length} photo{newMoment.images.length !== 1 ? 's' : ''} selected</p>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center h-64">
+              <Camera size={48} className="text-gray-400 mb-2" />
+              <p className="text-sm text-gray-500">Tap to select photos</p>
+              <p className="text-xs text-gray-400 mt-1">You can select multiple</p>
+            </div>
+          )}
+          <input type="file" accept="image/*" multiple onChange={handleImageSelect} className="hidden" />
+        </label>
+        <textarea key="caption-input" placeholder="What's happening?..." value={newMoment.caption}
+          onChange={(e) => setNewMoment(prev => ({ ...prev, caption: e.target.value }))} autoComplete="off"
+          className="w-full p-4 border border-gray-300 rounded-lg focus:outline-none focus:border-gray-400 resize-none" rows="4" />
+      </div>
+    </div>
+  );
+
+  const ProfileView = () => {
+    const currentUserProfile = users.find(u => u.id === supabase.user?.id);
+    const yourMoments = moments.filter(m => m.user_id === supabase.user?.id);
+    return (
+      <div className="pb-20">
+        <div className="sticky top-0 bg-white border-b border-gray-200 p-4 z-10"><h1 className="text-2xl font-light">Profile</h1></div>
+        <div className="p-6">
+          <div className="mb-6">
+            <p className="text-xl font-medium">{currentUserProfile?.username || 'Loading...'}</p>
+            <p className="text-sm text-gray-600">{currentUserProfile?.email || supabase.user?.email}</p>
+          </div>
+          <div className="flex gap-8 mb-6 text-center">
+            <div><p className="text-2xl font-light">{yourMoments.length}</p><p className="text-xs text-gray-600">Moments</p></div>
+            <div><p className="text-2xl font-light">{following.length}</p><p className="text-xs text-gray-600">Following</p></div>
+          </div>
+          <div className="border-t border-gray-200 pt-4">
+            <p className="text-sm text-gray-600 mb-4">Your Moments</p>
+            {yourMoments.length === 0 ? <p className="text-center text-gray-400 py-8 text-sm">No moments shared yet</p> : (
+              <div className="grid grid-cols-3 gap-2">
+                {yourMoments.map(moment => {
+                  let firstImageUrl;
+                  try { const parsed = JSON.parse(moment.image_url); firstImageUrl = Array.isArray(parsed) ? parsed[0] : parsed; } 
+                  catch { firstImageUrl = moment.image_url; }
+                  return (<div key={moment.id} className="aspect-square bg-gray-50 rounded overflow-hidden">
+                    <img src={firstImageUrl} alt="" className="w-full h-full object-cover" /></div>);
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div className="max-w-md mx-auto bg-white min-h-screen">
+      {error && <div className="bg-red-50 text-red-600 p-3 text-sm text-center">{error}</div>}
+      {currentView === 'feed' && <FeedView />}
+      {currentView === 'album' && <AlbumView />}
+      {currentView === 'search' && <SearchView />}
+      {currentView === 'post' && <PostView />}
+      {currentView === 'profile' && <ProfileView />}
+      <NavBar />
+    </div>
+  );
+};
+
+export default App;
