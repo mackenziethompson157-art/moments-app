@@ -100,7 +100,7 @@ class SupabaseClient {
 
 const supabase = new SupabaseClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// Helper function to parse image URLs - memoized to prevent flicker
+// Helper function to parse image URLs
 const parseImageUrls = (imageUrl) => {
   try {
     const parsed = JSON.parse(imageUrl);
@@ -109,6 +109,64 @@ const parseImageUrls = (imageUrl) => {
     return [imageUrl];
   }
 };
+
+// Memoized Image Component with loading state
+const MomentImage = React.memo(({ src, alt, className, momentId }) => {
+  const [loaded, setLoaded] = useState(false);
+  const [error, setError] = useState(false);
+
+  return (
+    <div style={{ position: 'relative', backgroundColor: '#f9fafb' }}>
+      {!loaded && !error && (
+        <div style={{ 
+          position: 'absolute', 
+          inset: 0, 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'center',
+          backgroundColor: '#f9fafb'
+        }}>
+          <div style={{ 
+            width: '32px', 
+            height: '32px', 
+            border: '3px solid #e5e7eb', 
+            borderTopColor: '#9ca3af',
+            borderRadius: '50%',
+            animation: 'spin 1s linear infinite'
+          }}></div>
+        </div>
+      )}
+      <img
+        src={src}
+        alt={alt}
+        className={className}
+        onLoad={() => setLoaded(true)}
+        onError={() => setError(true)}
+        style={{ 
+          opacity: loaded ? 1 : 0,
+          transition: 'opacity 0.2s ease-in-out',
+          display: 'block',
+          width: '100%'
+        }}
+      />
+      {error && (
+        <div style={{ 
+          position: 'absolute', 
+          inset: 0, 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'center',
+          color: '#9ca3af',
+          fontSize: '14px'
+        }}>
+          Failed to load
+        </div>
+      )}
+    </div>
+  );
+}, (prevProps, nextProps) => {
+  return prevProps.src === nextProps.src && prevProps.momentId === nextProps.momentId;
+});
 
 const App = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(!!supabase.user);
@@ -138,18 +196,26 @@ const App = () => {
         setLoading(false);
         return;
       }
-      const usersData = await supabase.select('profiles', 'select=*');
+      
+      // Load all data in parallel
+      const [usersData, followingData, likesData] = await Promise.all([
+        supabase.select('profiles', 'select=*'),
+        supabase.select('follows', `follower_id=eq.${supabase.user.id}`),
+        supabase.select('likes', 'select=*')
+      ]);
+      
       setUsers(usersData);
-      const followingData = await supabase.select('follows', `follower_id=eq.${supabase.user.id}`);
       setFollowing(followingData);
+      setLikes(likesData);
+      
       const followedIds = followingData.map(f => f.following_id);
       const allUserIds = [...followedIds, supabase.user.id].join(',');
+      
       if (allUserIds) {
         const momentsData = await supabase.select('moments', `user_id=in.(${allUserIds})&order=created_at.desc`);
         setMoments(momentsData);
       }
-      const likesData = await supabase.select('likes', 'select=*');
-      setLikes(likesData);
+      
       setError(null);
     } catch (err) {
       setError(err.message);
@@ -325,13 +391,12 @@ const App = () => {
   );
 
   const FeedView = () => {
-    // Memoize processed moments to prevent recalculation on every render
     const processedMoments = useMemo(() => {
       return feedMoments.map(moment => ({
         ...moment,
         firstImageUrl: parseImageUrls(moment.image_url)[0]
       }));
-    }, [feedMoments]);
+    }, [feedMoments.length, feedMoments.map(m => m.id).join(',')]);
 
     return (
       <div className="pb-20">
@@ -361,11 +426,11 @@ const App = () => {
                   className="aspect-square bg-gray-50 rounded-2xl overflow-hidden hover:opacity-80 transition-opacity">
                   <div className="h-full flex flex-col">
                     <div className="flex-1 overflow-hidden">
-                      <img 
-                        src={moment.firstImageUrl} 
-                        alt="" 
-                        className="w-full h-full object-cover"
-                        loading="lazy"
+                      <MomentImage
+                        src={moment.firstImageUrl}
+                        alt=""
+                        className="h-full object-cover"
+                        momentId={moment.id}
                       />
                     </div>
                     <div className="bg-white p-3 border-t border-gray-100">
@@ -389,11 +454,10 @@ const App = () => {
     const momentUser = users.find(u => u.id === selectedUserId);
     const commentInputRef = useRef(null);
     
-    // Memoize image URLs to prevent flickering
     const imageUrls = useMemo(() => {
       if (!currentMoment) return [];
       return parseImageUrls(currentMoment.image_url);
-    }, [currentMoment?.id, currentMoment?.image_url]);
+    }, [currentMoment?.id]);
     
     const isLiked = currentMoment && likes.some(l => l.user_id === supabase.user.id && l.moment_id === currentMoment.id);
     const likeCount = currentMoment ? likes.filter(l => l.moment_id === currentMoment.id).length : 0;
@@ -434,11 +498,11 @@ const App = () => {
         <div className="max-w-lg mx-auto">
           {imageUrls.map((imageUrl, imgIndex) => (
             <div key={`${currentMoment?.id}-${imgIndex}`} className="w-full">
-              <img 
-                src={imageUrl} 
-                alt="" 
-                className="w-full h-auto block"
-                loading="lazy"
+              <MomentImage
+                src={imageUrl}
+                alt=""
+                className="h-auto object-cover"
+                momentId={`${currentMoment?.id}-${imgIndex}`}
               />
             </div>
           ))}
@@ -495,6 +559,11 @@ const App = () => {
             )}
           </div>
         </div>
+        <style>{`
+          @keyframes spin {
+            to { transform: rotate(360deg); }
+          }
+        `}</style>
       </div>
     );
   };
@@ -577,13 +646,12 @@ const App = () => {
     const currentUserProfile = users.find(u => u.id === supabase.user?.id);
     const yourMoments = moments.filter(m => m.user_id === supabase.user?.id);
     
-    // Memoize processed profile moments
     const processedProfileMoments = useMemo(() => {
       return yourMoments.map(moment => ({
         ...moment,
         firstImageUrl: parseImageUrls(moment.image_url)[0]
       }));
-    }, [yourMoments]);
+    }, [yourMoments.length, yourMoments.map(m => m.id).join(',')]);
 
     return (
       <div className="pb-20">
@@ -603,11 +671,11 @@ const App = () => {
               <div className="grid grid-cols-3 gap-2">
                 {processedProfileMoments.map(moment => (
                   <div key={moment.id} className="aspect-square bg-gray-50 rounded overflow-hidden">
-                    <img 
-                      src={moment.firstImageUrl} 
-                      alt="" 
-                      className="w-full h-full object-cover"
-                      loading="lazy"
+                    <MomentImage
+                      src={moment.firstImageUrl}
+                      alt=""
+                      className="h-full object-cover"
+                      momentId={moment.id}
                     />
                   </div>
                 ))}
