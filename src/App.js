@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+mport React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Heart, MessageCircle, Send, Search, Home, PlusSquare, User, ArrowLeft, ChevronLeft, ChevronRight, LogOut, Camera } from 'lucide-react';
 
 const SUPABASE_URL = 'https://emcnnvxvwmkmuudxbtqp.supabase.co';
@@ -498,7 +498,7 @@ const App = () => {
     }, [currentMoment?.id]);
 
     const handleAddCommentFromRef = async () => {
-      const commentText = commentInputRef.current?.textContent || '';
+      const commentText = commentInputRef.current?.value || '';
       if (commentText.trim() && currentMoment) {
         try {
           await supabase.insert('comments', {
@@ -507,7 +507,7 @@ const App = () => {
             text: commentText.trim()
           });
           await loadComments(currentMoment.id);
-          if (commentInputRef.current) commentInputRef.current.textContent = '';
+          if (commentInputRef.current) commentInputRef.current.value = '';
         } catch (err) {
           setError(err.message);
         }
@@ -568,8 +568,12 @@ const App = () => {
                 {comments.length === 0 && <p className="text-gray-400 text-center py-6 text-sm">No comments yet</p>}
               </div>
               <div className="space-y-3">
-                <div ref={commentInputRef} contentEditable suppressContentEditableWarning
-                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-black min-h-[80px]" />
+                <textarea 
+                  ref={commentInputRef}
+                  placeholder="Add a comment..."
+                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-black min-h-[80px] resize-none"
+                  rows="3"
+                />
                 <button onClick={handleAddCommentFromRef}
                   className="w-full py-3 bg-black text-white rounded-lg hover:bg-gray-800 font-medium">
                   Post Comment
@@ -700,15 +704,22 @@ const App = () => {
             <p className="text-sm text-gray-600 mb-4">Your Moments</p>
             {processedProfileMoments.length === 0 ? <p className="text-center text-gray-400 py-8 text-sm">No moments shared yet</p> : (
               <div className="grid grid-cols-3 gap-2">
-                {processedProfileMoments.map(moment => (
-                  <div key={moment.id} className="aspect-square bg-gray-50 rounded overflow-hidden">
+                {processedProfileMoments.map((moment, index) => (
+                  <button 
+                    key={moment.id} 
+                    onClick={() => {
+                      setSelectedUserId(supabase.user.id);
+                      setCurrentView('album');
+                      setCurrentMomentIndex(index);
+                    }}
+                    className="aspect-square bg-gray-50 rounded overflow-hidden hover:opacity-80 transition-opacity">
                     <MomentImage
                       src={moment.firstImageUrl}
                       alt=""
                       className="h-full object-cover"
                       momentId={moment.id}
                     />
-                  </div>
+                  </button>
                 ))}
               </div>
             )}
