@@ -110,10 +110,25 @@ const parseImageUrls = (imageUrl) => {
   }
 };
 
-// Memoized Image Component with loading state
+// Global image cache to track which images have already loaded
+const imageCache = new Set();
+
+// Memoized Image Component with loading state and cache
 const MomentImage = React.memo(({ src, alt, className, momentId }) => {
-  const [loaded, setLoaded] = useState(false);
+  const [loaded, setLoaded] = useState(imageCache.has(src));
   const [error, setError] = useState(false);
+
+  useEffect(() => {
+    // If image is already in cache, mark as loaded immediately
+    if (imageCache.has(src)) {
+      setLoaded(true);
+    }
+  }, [src]);
+
+  const handleLoad = () => {
+    imageCache.add(src);
+    setLoaded(true);
+  };
 
   return (
     <div style={{ position: 'relative', backgroundColor: '#f9fafb' }}>
@@ -140,11 +155,11 @@ const MomentImage = React.memo(({ src, alt, className, momentId }) => {
         src={src}
         alt={alt}
         className={className}
-        onLoad={() => setLoaded(true)}
+        onLoad={handleLoad}
         onError={() => setError(true)}
         style={{ 
           opacity: loaded ? 1 : 0,
-          transition: 'opacity 0.2s ease-in-out',
+          transition: 'opacity 0.15s ease-in-out',
           display: 'block',
           width: '100%'
         }}
@@ -398,6 +413,14 @@ const App = () => {
       }));
     }, [feedMoments.length, feedMoments.map(m => m.id).join(',')]);
 
+    // Preload images for smoother transitions
+    useEffect(() => {
+      processedMoments.forEach(moment => {
+        const img = new Image();
+        img.src = moment.firstImageUrl;
+      });
+    }, [processedMoments]);
+
     return (
       <div className="pb-20">
         <div className="sticky top-0 bg-white border-b border-gray-200 p-4 z-10 flex justify-between items-center">
@@ -458,6 +481,14 @@ const App = () => {
       if (!currentMoment) return [];
       return parseImageUrls(currentMoment.image_url);
     }, [currentMoment?.id]);
+    
+    // Preload all images in the current moment
+    useEffect(() => {
+      imageUrls.forEach(url => {
+        const img = new Image();
+        img.src = url;
+      });
+    }, [imageUrls]);
     
     const isLiked = currentMoment && likes.some(l => l.user_id === supabase.user.id && l.moment_id === currentMoment.id);
     const likeCount = currentMoment ? likes.filter(l => l.moment_id === currentMoment.id).length : 0;
