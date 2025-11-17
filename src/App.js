@@ -473,7 +473,6 @@ const App = () => {
     const currentMoment = userMoments[currentMomentIndex];
     const momentUser = users.find(u => u.id === selectedUserId);
     const commentInputRef = useRef(null);
-    const [imagesLoaded, setImagesLoaded] = useState(false);
     
     let imageUrls = [];
     if (currentMoment) {
@@ -484,31 +483,6 @@ const App = () => {
         imageUrls = [currentMoment.image_url];
       }
     }
-
-    // Preload all images before showing them
-    React.useEffect(() => {
-      if (imageUrls.length === 0) return;
-      
-      setImagesLoaded(false);
-      let loadedCount = 0;
-      
-      imageUrls.forEach(url => {
-        const img = new Image();
-        img.onload = () => {
-          loadedCount++;
-          if (loadedCount === imageUrls.length) {
-            setImagesLoaded(true);
-          }
-        };
-        img.onerror = () => {
-          loadedCount++;
-          if (loadedCount === imageUrls.length) {
-            setImagesLoaded(true);
-          }
-        };
-        img.src = url;
-      });
-    }, [currentMoment?.id]);
 
     const isLiked = currentMoment && likes.some(l => 
       l.user_id === supabase.user.id && l.moment_id === currentMoment.id
@@ -541,31 +515,19 @@ const App = () => {
       }
     };
 
-    // Show loading until images are ready
-    if (!imagesLoaded) {
-      return (
-        <div className="min-h-screen bg-black pb-20 flex items-center justify-center">
-          <div className="text-white text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
-            <p>Loading images...</p>
-          </div>
-        </div>
-      );
-    }
-
     return (
-      <div className="min-h-screen bg-black pb-20">
-        <div className="sticky top-0 bg-black border-b border-gray-800 p-4 z-10">
+      <div className="min-h-screen bg-white pb-20">
+        <div className="sticky top-0 bg-white border-b border-gray-200 p-4 z-10">
           <div className="flex items-center justify-between max-w-lg mx-auto">
             <button 
               onClick={() => setCurrentView('feed')} 
-              className="text-white"
+              className="text-gray-600"
             >
               <ArrowLeft size={24} />
             </button>
             <div className="text-center">
-              <p className="text-sm font-medium text-white">{momentUser?.username}</p>
-              <p className="text-xs text-gray-400">
+              <p className="text-sm font-medium">{momentUser?.username}</p>
+              <p className="text-xs text-gray-500">
                 {currentMomentIndex + 1} of {userMoments.length}
               </p>
             </div>
@@ -575,24 +537,15 @@ const App = () => {
 
         <div className="max-w-lg mx-auto">
           {imageUrls.map((imageUrl, imgIndex) => (
-            <div key={`${currentMoment?.id}-${imgIndex}`} style={{ width: '100%', backgroundColor: '#000' }}>
-              <img 
-                src={imageUrl} 
-                alt={`Photo ${imgIndex + 1}`} 
-                style={{ 
-                  display: 'block',
-                  width: '100%',
-                  height: 'auto',
-                  margin: 0,
-                  padding: 0,
-                  border: 0,
-                  verticalAlign: 'top'
-                }}
-              />
-            </div>
+            <img 
+              key={imgIndex}
+              src={imageUrl} 
+              alt="" 
+              className="w-full"
+            />
           ))}
           
-          <div className="p-6 bg-black">
+          <div className="p-6">
             <div className="flex gap-4 mb-4">
               <button 
                 onClick={() => toggleLike(currentMoment?.id)} 
