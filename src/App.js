@@ -597,50 +597,36 @@ const App = () => {
                 })}
                 {comments.length === 0 && <p className="text-gray-400 text-center py-6 text-sm">No comments yet</p>}
               </div>
-              <div className="space-y-3" style={{ isolation: 'isolate' }}>
-                <div style={{ position: 'relative', zIndex: 100 }}>
-                  <textarea 
-                    key={`comment-input-${currentMoment?.id}`}
-                    ref={commentInputRef}
-                    value={commentText}
-                    onChange={(e) => {
-                      console.log('Textarea onChange:', e.target.value);
-                      setCommentText(e.target.value);
-                    }}
-                    onInput={(e) => {
-                      console.log('Textarea onInput:', e.target.value);
-                    }}
-                    onKeyDown={(e) => {
-                      console.log('Key pressed:', e.key);
-                    }}
-                    onMouseDown={(e) => {
-                      console.log('Textarea mouseDown');
-                    }}
-                    onClick={(e) => {
-                      console.log('Textarea clicked');
-                      commentInputRef.current?.focus();
-                    }}
-                    onFocus={(e) => {
-                      console.log('Textarea focused');
-                    }}
-                    onBlur={() => {
-                      console.log('Textarea blurred');
-                    }}
-                    placeholder="Add a comment..."
-                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-black min-h-[80px] resize-none"
-                    rows="3"
-                    style={{ 
-                      fontSize: '16px', // Prevents zoom on iOS
-                      WebkitAppearance: 'none',
-                      appearance: 'none'
-                    }}
-                    inputMode="text"
-                    autoComplete="off"
-                    autoCorrect="on"
-                    autoCapitalize="sentences"
-                    spellCheck="true"
-                  />
-                </div>
+              <div className="space-y-3">
+                <button 
+                  onClick={() => {
+                    console.log('Test button clicked!');
+                    alert('Test button works!');
+                  }}
+                  className="w-full py-2 bg-blue-500 text-white rounded text-sm">
+                  TEST: Click Me
+                </button>
+                
+                <input
+                  type="text"
+                  id="comment-input"
+                  value={commentText}
+                  onChange={(e) => {
+                    console.log('✓ Input onChange fired! Value:', e.target.value);
+                    setCommentText(e.target.value);
+                  }}
+                  onKeyPress={(e) => {
+                    console.log('✓ Key pressed:', e.key);
+                  }}
+                  onFocus={() => {
+                    console.log('✓ Input focused - keyboard should appear');
+                  }}
+                  placeholder="Type here..."
+                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-black"
+                />
+                
+                <p className="text-sm text-gray-600">You typed: "{commentText}"</p>
+                
                 <button 
                   onClick={handleAddCommentFromRef}
                   disabled={commentSubmitting}
