@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+mport React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Heart, MessageCircle, Send, Search, Home, PlusSquare, User, ArrowLeft, ChevronLeft, ChevronRight, LogOut, Camera } from 'lucide-react';
 
 const SUPABASE_URL = 'https://emcnnvxvwmkmuudxbtqp.supabase.co';
@@ -496,7 +496,10 @@ const App = () => {
     const likeCount = currentMoment ? likes.filter(l => l.moment_id === currentMoment.id).length : 0;
 
     useEffect(() => {
-      if (currentMoment) loadComments(currentMoment.id);
+      if (currentMoment) {
+        loadComments(currentMoment.id);
+        setCommentText(''); // Clear comment when switching moments
+      }
     }, [currentMoment?.id]);
 
     const handleAddCommentFromRef = async () => {
@@ -594,24 +597,47 @@ const App = () => {
                 })}
                 {comments.length === 0 && <p className="text-gray-400 text-center py-6 text-sm">No comments yet</p>}
               </div>
-              <div className="space-y-3">
-                <textarea 
-                  ref={commentInputRef}
-                  value={commentText}
-                  onChange={(e) => setCommentText(e.target.value)}
-                  placeholder="Add a comment..."
-                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-black min-h-[80px] resize-none"
-                  rows="3"
-                  style={{ 
-                    position: 'relative',
-                    zIndex: 1,
-                    touchAction: 'auto',
-                    userSelect: 'text',
-                    WebkitUserSelect: 'text'
-                  }}
-                  autoComplete="off"
-                  spellCheck="true"
-                />
+              <div className="space-y-3" style={{ isolation: 'isolate' }}>
+                <div style={{ position: 'relative', zIndex: 100 }}>
+                  <textarea 
+                    key={`comment-input-${currentMoment?.id}`}
+                    ref={commentInputRef}
+                    value={commentText}
+                    onChange={(e) => {
+                      console.log('Textarea onChange:', e.target.value);
+                      setCommentText(e.target.value);
+                    }}
+                    onMouseDown={(e) => {
+                      console.log('Textarea mouseDown');
+                      e.stopPropagation();
+                    }}
+                    onClick={(e) => {
+                      console.log('Textarea clicked');
+                      e.stopPropagation();
+                    }}
+                    onFocus={(e) => {
+                      console.log('Textarea focused');
+                      e.stopPropagation();
+                    }}
+                    onBlur={() => {
+                      console.log('Textarea blurred');
+                    }}
+                    placeholder="Add a comment..."
+                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-black min-h-[80px] resize-none"
+                    rows="3"
+                    style={{ 
+                      position: 'relative',
+                      zIndex: 1,
+                      touchAction: 'auto',
+                      userSelect: 'text',
+                      WebkitUserSelect: 'text',
+                      pointerEvents: 'auto',
+                      fontSize: '16px' // Prevents zoom on iOS
+                    }}
+                    autoComplete="off"
+                    spellCheck="true"
+                  />
+                </div>
                 <button 
                   onClick={handleAddCommentFromRef}
                   disabled={commentSubmitting}
