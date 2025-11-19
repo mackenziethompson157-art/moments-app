@@ -477,6 +477,7 @@ const App = () => {
     const momentUser = users.find(u => u.id === selectedUserId);
     const commentInputRef = useRef(null);
     const [commentSubmitting, setCommentSubmitting] = useState(false);
+    const [commentText, setCommentText] = useState('');
     
     const imageUrls = useMemo(() => {
       if (!currentMoment) return [];
@@ -499,7 +500,6 @@ const App = () => {
     }, [currentMoment?.id]);
 
     const handleAddCommentFromRef = async () => {
-      const commentText = commentInputRef.current?.value || '';
       console.log('Attempting to post comment:', commentText);
       console.log('Current moment ID:', currentMoment?.id);
       console.log('User ID:', supabase.user?.id);
@@ -530,7 +530,7 @@ const App = () => {
         console.log('Insert result:', result);
         
         await loadComments(currentMoment.id);
-        if (commentInputRef.current) commentInputRef.current.value = '';
+        setCommentText('');
         alert('Comment posted successfully!');
       } catch (err) {
         console.error('Error posting comment:', err);
@@ -597,9 +597,20 @@ const App = () => {
               <div className="space-y-3">
                 <textarea 
                   ref={commentInputRef}
+                  value={commentText}
+                  onChange={(e) => setCommentText(e.target.value)}
                   placeholder="Add a comment..."
                   className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-black min-h-[80px] resize-none"
                   rows="3"
+                  style={{ 
+                    position: 'relative',
+                    zIndex: 1,
+                    touchAction: 'auto',
+                    userSelect: 'text',
+                    WebkitUserSelect: 'text'
+                  }}
+                  autoComplete="off"
+                  spellCheck="true"
                 />
                 <button 
                   onClick={handleAddCommentFromRef}
