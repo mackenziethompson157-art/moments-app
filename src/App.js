@@ -476,6 +476,7 @@ const App = () => {
     const currentMoment = userMoments[currentMomentIndex];
     const momentUser = users.find(u => u.id === selectedUserId);
     const commentInputRef = useRef(null);
+    const [commentSubmitting, setCommentSubmitting] = useState(false);
     
     const imageUrls = useMemo(() => {
       if (!currentMoment) return [];
@@ -499,18 +500,44 @@ const App = () => {
 
     const handleAddCommentFromRef = async () => {
       const commentText = commentInputRef.current?.value || '';
-      if (commentText.trim() && currentMoment) {
-        try {
-          await supabase.insert('comments', {
-            moment_id: currentMoment.id,
-            user_id: supabase.user.id,
-            text: commentText.trim()
-          });
-          await loadComments(currentMoment.id);
-          if (commentInputRef.current) commentInputRef.current.value = '';
-        } catch (err) {
-          setError(err.message);
-        }
+      console.log('Attempting to post comment:', commentText);
+      console.log('Current moment ID:', currentMoment?.id);
+      console.log('User ID:', supabase.user?.id);
+      
+      if (!commentText.trim()) {
+        alert('Please enter a comment');
+        return;
+      }
+      
+      if (!currentMoment) {
+        alert('No moment selected');
+        return;
+      }
+      
+      if (!supabase.user?.id) {
+        alert('You must be logged in to comment');
+        return;
+      }
+      
+      setCommentSubmitting(true);
+      try {
+        console.log('Inserting comment...');
+        const result = await supabase.insert('comments', {
+          moment_id: currentMoment.id,
+          user_id: supabase.user.id,
+          text: commentText.trim()
+        });
+        console.log('Insert result:', result);
+        
+        await loadComments(currentMoment.id);
+        if (commentInputRef.current) commentInputRef.current.value = '';
+        alert('Comment posted successfully!');
+      } catch (err) {
+        console.error('Error posting comment:', err);
+        alert('Error posting comment: ' + err.message);
+        setError(err.message);
+      } finally {
+        setCommentSubmitting(false);
       }
     };
 
@@ -574,9 +601,11 @@ const App = () => {
                   className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-black min-h-[80px] resize-none"
                   rows="3"
                 />
-                <button onClick={handleAddCommentFromRef}
-                  className="w-full py-3 bg-black text-white rounded-lg hover:bg-gray-800 font-medium">
-                  Post Comment
+                <button 
+                  onClick={handleAddCommentFromRef}
+                  disabled={commentSubmitting}
+                  className="w-full py-3 bg-black text-white rounded-lg hover:bg-gray-800 font-medium disabled:opacity-50 disabled:cursor-not-allowed">
+                  {commentSubmitting ? 'Posting...' : 'Post Comment'}
                 </button>
               </div>
             </div>
