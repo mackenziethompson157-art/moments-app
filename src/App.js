@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+mport React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Heart, MessageCircle, Send, Search, Home, PlusSquare, User, ArrowLeft, ChevronLeft, ChevronRight, LogOut, Camera } from 'lucide-react';
 
 const SUPABASE_URL = 'https://emcnnvxvwmkmuudxbtqp.supabase.co';
@@ -607,17 +607,21 @@ const App = () => {
                       console.log('Textarea onChange:', e.target.value);
                       setCommentText(e.target.value);
                     }}
+                    onInput={(e) => {
+                      console.log('Textarea onInput:', e.target.value);
+                    }}
+                    onKeyDown={(e) => {
+                      console.log('Key pressed:', e.key);
+                    }}
                     onMouseDown={(e) => {
                       console.log('Textarea mouseDown');
-                      e.stopPropagation();
                     }}
                     onClick={(e) => {
                       console.log('Textarea clicked');
-                      e.stopPropagation();
+                      commentInputRef.current?.focus();
                     }}
                     onFocus={(e) => {
                       console.log('Textarea focused');
-                      e.stopPropagation();
                     }}
                     onBlur={() => {
                       console.log('Textarea blurred');
@@ -626,15 +630,14 @@ const App = () => {
                     className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-black min-h-[80px] resize-none"
                     rows="3"
                     style={{ 
-                      position: 'relative',
-                      zIndex: 1,
-                      touchAction: 'auto',
-                      userSelect: 'text',
-                      WebkitUserSelect: 'text',
-                      pointerEvents: 'auto',
-                      fontSize: '16px' // Prevents zoom on iOS
+                      fontSize: '16px', // Prevents zoom on iOS
+                      WebkitAppearance: 'none',
+                      appearance: 'none'
                     }}
+                    inputMode="text"
                     autoComplete="off"
+                    autoCorrect="on"
+                    autoCapitalize="sentences"
                     spellCheck="true"
                   />
                 </div>
