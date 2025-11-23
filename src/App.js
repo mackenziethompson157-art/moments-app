@@ -472,12 +472,16 @@ const App = () => {
   };
 
   const AlbumView = () => {
+    console.log('🔄 AlbumView rendering...');
+    
     const userMoments = moments.filter(m => m.user_id === selectedUserId);
     const currentMoment = userMoments[currentMomentIndex];
     const momentUser = users.find(u => u.id === selectedUserId);
     const commentInputRef = useRef(null);
     const [commentSubmitting, setCommentSubmitting] = useState(false);
     const [commentText, setCommentText] = useState('');
+    
+    console.log('📝 Current commentText state:', commentText);
     
     const imageUrls = useMemo(() => {
       if (!currentMoment) return [];
@@ -498,7 +502,6 @@ const App = () => {
     useEffect(() => {
       if (currentMoment) {
         loadComments(currentMoment.id);
-        setCommentText(''); // Clear comment when switching moments
       }
     }, [currentMoment?.id]);
 
