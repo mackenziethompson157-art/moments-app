@@ -199,10 +199,16 @@ const App = () => {
   const [comments, setComments] = useState([]);
   const [authMode, setAuthMode] = useState('signin');
   const [authForm, setAuthForm] = useState({ email: '', password: '', username: '' });
+  const [commentText, setCommentText] = useState(''); // Moved here to persist across renders
 
   useEffect(() => {
     if (isAuthenticated) loadData();
   }, [isAuthenticated]);
+
+  // Clear comment text when switching moments or views
+  useEffect(() => {
+    setCommentText('');
+  }, [currentMomentIndex, selectedUserId, currentView]);
 
   const loadData = async () => {
     try {
@@ -479,7 +485,7 @@ const App = () => {
     const momentUser = users.find(u => u.id === selectedUserId);
     const commentInputRef = useRef(null);
     const [commentSubmitting, setCommentSubmitting] = useState(false);
-    const [commentText, setCommentText] = useState('');
+    // commentText is now in parent App component
     
     console.log('📝 Current commentText state:', commentText);
     
